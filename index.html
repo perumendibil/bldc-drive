@@ -22,7 +22,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script>if (new URLSearchParams(location.search).has("video")) location.replace("video/");</script>
-<script type="module" src="app.js?v=3"></script>
+<script type="module" src="app.js?v=4"></script>
 </head>
 <body>
 
@@ -58,6 +58,7 @@
           <label for="rpm"><span>Wheel speed</span> <output id="rpm-out">90 rpm · 135 edges/s</output></label>
           <input type="range" id="rpm" min="0" max="300" step="1" value="90">
         </div>
+        <div class="btn-row"><button class="btn" type="button" id="rotor-run" aria-pressed="true">❚❚ Pause</button></div>
       </div>
       <p class="inst-note" style="text-align:left;margin-top:6px">Each magnet boundary that passes a sensor gives an edge: 3 sensors × 2 per pole pair × 15 pole pairs = 90 edges per turn.</p>
     </div>

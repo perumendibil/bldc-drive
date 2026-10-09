@@ -39,7 +39,6 @@ function initHero() {
     $("hero-rpm").textContent = rpm;
     paintFill(slider);
   };
-  slider.addEventListener("input", () => { rpm = +slider.value; label(); if (reduceMotion) step(0.02); });
   label();
 
   function step(dt) {
@@ -54,16 +53,31 @@ function initHero() {
 
   // warm up so the logic trace is full on first paint
   for (let i = 0; i < 40; i++) step(0.002);
-  if (reduceMotion) return;
 
-  let visible = true, last = performance.now();
-  new IntersectionObserver(([e]) => { visible = e.isIntersecting; last = performance.now(); }).observe($("rotor"));
+  // Runs by default; starts paused when the system asks for reduced motion.
+  // The button (and moving the slider) starts or stops it in both cases.
+  const runBtn = $("rotor-run");
+  let running = false, visible = true, last = performance.now(), raf = 0;
   const frame = (now) => {
     if (visible && !document.hidden) step(Math.min(Math.max((now - last) / 1000, 0), 0.05));
     last = now;
-    requestAnimationFrame(frame);
+    raf = requestAnimationFrame(frame);
   };
-  requestAnimationFrame(frame);
+  const setRunning = (on) => {
+    running = on;
+    runBtn.textContent = on ? "❚❚ Pause" : "▶ Run";
+    runBtn.setAttribute("aria-pressed", String(on));
+    cancelAnimationFrame(raf);
+    if (on) { last = performance.now(); raf = requestAnimationFrame(frame); }
+  };
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; last = performance.now(); }).observe($("rotor"));
+  runBtn.addEventListener("click", () => setRunning(!running));
+  slider.addEventListener("input", () => {
+    rpm = +slider.value;
+    label();
+    if (!running) setRunning(true);
+  });
+  setRunning(!reduceMotion);
 }
 
 // ---------------------------------------------------------------- characterise
