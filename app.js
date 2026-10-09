@@ -288,6 +288,8 @@ async function initMedia() {
     btn.hidden = false;
     btn.addEventListener("click", () => { vid.src = "media/teaser.mp4"; dlg.showModal(); vid.play().catch(() => {}); });
     dlg.addEventListener("close", () => vid.pause());
+    // links from LinkedIn Featured use ?video=1 to open the summary straight away
+    if (new URLSearchParams(location.search).has("video")) btn.click();
   }
   if (manifest.scooterVideo) document.querySelector('[data-slot="scooter-video"]').hidden = false;
   if (manifest.boardPhoto) document.querySelector('[data-slot="board-photo"]').hidden = false;
