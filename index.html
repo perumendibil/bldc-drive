@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BLDC Motor Control · Peru Mendivil</title>
+<meta name="description" content="Current and speed control of an electric scooter's BLDC hub motor on an STM32: motor characterisation, PI tuning, current filter and Hall-based speed measurement. Interactive charts with the measured motor parameters.">
+<meta name="author" content="Peru Mendivil">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BLDC motor control for an electric scooter (interactive)">
+<meta property="og:description" content="Current and speed control of a hub motor on an STM32, with the motor parameters I measured. Kp and the filter cut-off can be changed to see the effect on the loop.">
+<meta property="og:url" content="https://perumendibil.github.io/bldc-drive/">
+<meta property="og:image" content="https://perumendibil.github.io/bldc-drive/media/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="Oscilloscope-style current step response with the title BLDC motor control">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#07090c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307090c'/%3E%3Cpath d='M5 24h5c3 0 3-15 8-15h9' fill='none' stroke='%235ef2e4' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><b>Peru Mendivil</b><span class="hide-sm"> · BLDC motor control</span></div>
+    <nav class="toplinks" aria-label="Sections">
+      <a href="#current">Current loop</a>
+      <a href="https://www.linkedin.com/in/perumendivil" rel="me">LinkedIn</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div class="hero-head">
+      <div class="kicker">Electric scooter · Mondragon Unibertsitatea · 2025-26</div>
+      <h1 style="margin-top:14px">BLDC motor control for an electric scooter</h1>
+    </div>
+    <div class="instrument hero-inst">
+      <div class="inst-head"><span class="inst-title">Hall sensors</span><span class="inst-note" id="hero-edges">0 edges</span></div>
+      <div class="rotor-wrap" id="rotor">
+        <div class="rotor-readout" aria-live="off">
+          <div><div class="big" id="hero-rpm">90</div><div class="unit">rpm</div><div class="code" id="hero-code">1 0 1</div></div>
+        </div>
+      </div>
+      <div class="logic" id="logic"></div>
+      <div class="controls">
+        <div class="control">
+          <label for="rpm"><span>Wheel speed</span> <output id="rpm-out">90 rpm · 135 edges/s</output></label>
+          <input type="range" id="rpm" min="0" max="300" step="1" value="90">
+        </div>
+      </div>
+      <p class="inst-note" style="text-align:left;margin-top:6px">Each magnet boundary that passes a sensor gives an edge: 3 sensors × 2 per pole pair × 15 pole pairs = 90 edges per turn.</p>
+    </div>
+    <div class="hero-body">
+      <p class="lede">Third-year team project at Mondragon, five students. My part was the drive. I designed and sized the measurement boards, using techniques to minimise electromagnetic noise, characterised the motor and implemented the current and speed control on an STM32.</p>
+      <p class="lede">The charts on this page use the motor parameters I measured. Kp and the filter cut-off can be changed to see the effect on the loop.</p>
+      <div class="hero-cta">
+        <a class="btn primary" href="#current">Go to the current loop ↓</a>
+        <button class="btn" type="button" id="play-teaser" hidden>▶ 20-second summary</button>
+      </div>
+      <div class="chips" aria-label="Tools">
+        <span class="chip">STM32</span><span class="chip">IFX007T inverter</span><span class="chip">MATLAB / Simulink</span><span class="chip">10 kHz PWM</span><span class="chip">15 pole pairs</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 01 SCOPE -->
+<section id="scope">
+  <div class="wrap split">
+    <div class="prose">
+      <div class="kicker">01 · Scope</div>
+      <h2>Scope of my work</h2>
+      <p>The hub motor and the inverter (Infineon <strong>IFX007T</strong> shield) were given. The control between them ran on an <strong>STM32</strong>: two PI controllers in cascade, a back-EMF feed-forward, a low-pass filter on the measured current and a speed estimate from the Hall sensors.</p>
+      <p>I also designed and sized the measurement boards for the voltages, the currents and the Hall signals. To reduce electromagnetic noise I used twisted wiring, minimum loop areas between signal and ground, and a separate ground for each Hall output. The battery charger was designed by other members of the team.</p>
+    </div>
+    <div class="instrument">
+      <div class="inst-head"><span class="inst-title">Control structure on the STM32</span><span class="inst-note">cyan = designed by me</span></div>
+      <svg class="diagram" viewBox="0 0 580 500" role="img" aria-label="Block diagram: speed reference into the speed PI, current PI, IFX007T inverter and BLDC motor; the filtered phase current returns to the current PI and a per-edge speed estimate returns to the speed PI">
+        <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow" d="M0 1 L10 5 L0 9 Z"/></marker></defs>
+        <path class="wire" d="M150 46 V90" marker-end="url(#arr)"/><path class="wire" d="M150 154 V198" marker-end="url(#arr)"/><path class="wire" d="M150 262 V306" marker-end="url(#arr)"/><path class="wire" d="M150 370 V414" marker-end="url(#arr)"/>
+        <path class="flow" d="M150 46 V90"/><path class="flow" d="M150 154 V198"/><path class="flow" d="M150 262 V306"/><path class="flow" d="M150 370 V414"/>
+        <path class="wire" d="M270 432 H375 V230 H270" marker-end="url(#arr)"/><path class="flow fb" d="M270 432 H375 V230 H270"/>
+        <path class="wire" d="M270 462 H505 V122 H270" marker-end="url(#arr)"/><path class="flow fb" d="M270 462 H505 V122 H270"/>
+        <text x="150" y="34" text-anchor="middle">speed reference n*</text>
+        <rect class="box mine" x="30" y="90" width="240" height="64" rx="10"/>
+        <text x="150" y="118" text-anchor="middle">Speed PI</text><text class="sub" x="150" y="138" text-anchor="middle">accel. feed-forward, anti-windup</text>
+        <text class="sub" x="160" y="182">I*</text>
+        <rect class="box mine" x="30" y="198" width="240" height="64" rx="10"/>
+        <text x="150" y="226" text-anchor="middle">Current PI</text><text class="sub" x="150" y="246" text-anchor="middle">Ti = L/R, back-EMF feed-forward</text>
+        <text class="sub" x="160" y="290">V*</text>
+        <rect class="box" x="30" y="306" width="240" height="64" rx="10"/>
+        <text x="150" y="334" text-anchor="middle">IFX007T inverter</text><text class="sub" x="150" y="354" text-anchor="middle">3-phase, 10 kHz PWM</text>
+        <rect class="box" x="30" y="414" width="240" height="64" rx="10"/>
+        <text x="150" y="442" text-anchor="middle">BLDC hub motor</text><text class="sub" x="150" y="462" text-anchor="middle">15 pole pairs</text>
+        <rect class="box mine" x="300" y="300" width="150" height="52" rx="10"/>
+        <text x="375" y="322" text-anchor="middle">Low-pass</text><text class="sub" x="375" y="340" text-anchor="middle">250 rad/s</text>
+        <rect class="box mine" x="440" y="160" width="130" height="52" rx="10"/>
+        <text x="505" y="182" text-anchor="middle">ω = 2π/90 ÷ Δt</text><text class="sub" x="505" y="200" text-anchor="middle">per Hall edge</text>
+        <text class="sub" x="280" y="425">phase current</text>
+        <text class="sub" x="280" y="455">Hall edges</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 02 CHARACTERISATION -->
+<section id="characterise">
+  <div class="wrap split">
+    <div class="prose">
+      <div class="kicker">02 · Characterisation</div>
+      <h2>Motor characterisation</h2>
+      <p>The first step was to measure the motor parameters on the bench to build a model of it. For R and L the rotor is locked, so there is no back-EMF. A voltage step then gives a first-order current response, and the time constant is the time to reach <strong>63.2 %</strong> of the final value.</p>
+      <p>The measured value was τ = 3.36 ms, and L = R·τ. The same test on the Simulink motor model gave 3.37 ms. The cursor can be moved along the curve.</p>
+    </div>
+    <div>
+      <div class="instrument">
+        <div class="inst-head"><span class="inst-title">Locked-rotor current step</span><span class="inst-note">model of the bench test</span></div>
+        <div id="chart-tau"></div>
+        <div class="readouts">
+          <div class="readout"><div class="k">Cursor t</div><div class="v" id="tau-t">3.36<small>ms</small></div></div>
+          <div class="readout"><div class="k">Current</div><div class="v" id="tau-i">0.657<small>A</small></div></div>
+          <div class="readout"><div class="k">Of final</div><div class="v" id="tau-p">63.2<small>%</small></div></div>
+        </div>
+        <div class="controls"><div class="control">
+          <label for="tau-cursor"><span>Cursor</span> <output id="tau-cursor-out">3.36 ms</output></label>
+          <input type="range" id="tau-cursor" min="0" max="15" step="0.02" value="3.36">
+        </div></div>
+      </div>
+      <figure class="evidence">
+        <img src="media/tau-scope.png" alt="Tektronix capture of the locked-rotor current step with cursors 3.36 ms apart" loading="lazy" width="800" height="480">
+        <figcaption>Oscilloscope capture, 15 Dec 2025: Δt = 3.36 ms from the step to 63.2 %.</figcaption>
+      </figure>
+      <div class="tiles">
+        <div class="tile"><div class="k">Phase R</div><div class="v">0.316<small>Ω</small></div><div class="s">0.483 V / 1.02 A, rotor locked</div></div>
+        <div class="tile"><div class="k">Phase L</div><div class="v">1.06<small>mH</small></div><div class="s">L = R·τ</div></div>
+        <div class="tile"><div class="k">Pole pairs</div><div class="v">15</div><div class="s">Hall cycles per turn</div></div>
+        <div class="tile"><div class="k">K<sub>em</sub></div><div class="v">0.0318<small>V·s/rad</small></div><div class="s">4.8 V back-EMF at 24 Hz</div></div>
+        <div class="tile"><div class="k">Damping</div><div class="v">0.014<small>N·m·s</small></div><div class="s">fitted to 154 / 194 / 293 rpm at 8 / 10 / 15 V</div></div>
+        <div class="tile"><div class="k">Inertia</div><div class="v">0.02<small>kg·m²</small></div><div class="s">wheel, 4 kg, r = 0.1 m; 0.82 with an 80 kg rider</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 CURRENT LOOP -->
+<section id="current">
+  <div class="wrap split">
+    <div class="prose">
+      <div class="kicker">03 · Current loop</div>
+      <h2>Current loop tuning</h2>
+      <p>The current loop is a PI controller. With the integral time equal to the motor time constant, T<sub>i</sub> = L/R = 3.36 ms, the controller zero cancels the motor pole and the closed loop becomes first order, with <strong>τ<sub>cl</sub> = L/K<sub>p</sub></strong> and no overshoot.</p>
+      <p>I chose τ<sub>cl</sub> = 1 ms, ten times the period of the 10 kHz inverter, which gives K<sub>p</sub> = 1.06.</p>
+      <p>The control first ran at 10 kHz. The speed loop measured time by counting the calls to the control function, and that count fluctuated and dropped as the scooter went faster: the STM32 could not finish the calculations in 0.1 ms. We checked it with the professor and reduced the control rate to 2 kHz (0.5 ms). With that sampling, the loop overshoots above K<sub>p</sub> ≈ 2 and becomes unstable above K<sub>p</sub> ≈ 3.9.</p>
+      <p>On the scooter I kept K<sub>p</sub> and made T<sub>i</sub> twenty times larger (67 ms). The response is slower, but more stable with the noise in the current measurement.</p>
+      <div class="eq"><span>T<sub>i</sub> = L/R = 3.36 ms</span><span>K<sub>p</sub> = L/τ<sub>cl</sub> = 1.06</span><span><span class="dim">→</span> τ<sub>cl</sub> = 1.00 ms</span></div>
+    </div>
+    <div class="instrument">
+      <div class="inst-head"><span class="inst-title">Current step response</span><span class="inst-note">5 A reference</span></div>
+      <div class="legend"><span><i style="background:var(--reference)"></i>reference I*</span><span><i style="background:var(--muted)"></i>continuous design</span><span><i style="background:var(--measured)"></i>sampled every 0.5 ms</span></div>
+      <div id="chart-current"></div>
+      <div class="readouts">
+        <div class="readout"><div class="k">K<sub>p</sub></div><div class="v" id="cur-kp">1.06</div></div>
+        <div class="readout"><div class="k">τ<sub>cl</sub> design</div><div class="v" id="cur-tau">1.00<small>ms</small></div></div>
+        <div class="readout"><div class="k">Inverter periods</div><div class="v" id="cur-ratio">10</div></div>
+        <div class="readout"><div class="k">Overshoot</div><div class="v" id="cur-os">0<small>%</small></div></div>
+      </div>
+      <div class="status" id="cur-status" data-level="good">Stable, no overshoot</div>
+      <div class="controls">
+        <div class="control">
+          <label for="kp"><span>Proportional gain K<sub>p</sub></span> <output id="kp-out">1.06</output></label>
+          <input type="range" id="kp" min="0" max="1000" step="1" value="0">
+        </div>
+        <div class="btn-row">
+          <button class="btn" type="button" id="kp-design" aria-pressed="true"><span>Design value: K<sub>p</sub> = 1.06</span></button>
+        </div>
+      </div>
+      <details class="values" id="cur-values"><summary>Values</summary></details>
+    </div>
+  </div>
+</section>
+
+<!-- 04 FILTER -->
+<section id="filter">
+  <div class="wrap split">
+    <div class="prose">
+      <div class="kicker">04 · Current filter</div>
+      <h2>Current filter and phase margin</h2>
+      <p>The phase current measured with the Hall sensors still had noise, so I added a first-order low-pass filter on the measurement. The filter adds phase lag inside the loop and reduces the phase margin.</p>
+      <p>Without the filter the phase margin is 90°. I chose the lowest cut-off frequency that kept an acceptable margin: <strong>250 rad/s</strong>, with <strong>28° at 470 rad/s</strong>. In the tests, a lower cut-off made the loop unstable.</p>
+    </div>
+    <div>
+      <div class="instrument">
+        <div class="inst-head"><span class="inst-title">Open-loop Bode, current loop</span><span class="inst-note">K<sub>p</sub> = 1.06</span></div>
+        <div class="legend"><span><i style="background:var(--measured)"></i>with filter</span><span><i style="background:var(--muted)"></i>no filter</span></div>
+        <div id="chart-mag"></div>
+        <div id="chart-phase"></div>
+        <div class="readouts">
+          <div class="readout"><div class="k">Filter cut-off</div><div class="v" id="f-cut">250<small>rad/s</small></div></div>
+          <div class="readout"><div class="k">Crossover</div><div class="v" id="f-wc">470<small>rad/s</small></div></div>
+          <div class="readout"><div class="k">Phase margin</div><div class="v" id="f-pm">28<small>°</small></div></div>
+          <div class="readout"><div class="k">Noise left</div><div class="v" id="f-noise">9<small>%</small></div></div>
+        </div>
+        <div class="status" id="f-status" data-level="warn">Reduced margin, stable</div>
+        <div class="controls">
+          <div class="control">
+            <label for="fc"><span>Filter cut-off</span> <output id="fc-out">250 rad/s</output></label>
+            <input type="range" id="fc" min="0" max="1000" step="1" value="0">
+          </div>
+          <div class="btn-row"><button class="btn" type="button" id="fc-design" aria-pressed="true">Design value: 250 rad/s</button></div>
+        </div>
+      </div>
+      <div class="instrument">
+        <div class="inst-head"><span class="inst-title">Measured current at 5 A</span><span class="inst-note">illustrative noise, not a measurement</span></div>
+        <div class="legend"><span><i style="background:var(--muted)"></i>raw sensor</span><span><i style="background:var(--measured)"></i>filtered</span><span><i style="background:var(--reference)"></i>5 A</span></div>
+        <div id="chart-noise"></div>
+        <details class="values" id="f-values"><summary>Values</summary></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 SPEED -->
+<section id="speed">
+  <div class="wrap split">
+    <div class="prose">
+      <div class="kicker">05 · Speed</div>
+      <h2>Speed measurement and speed loop</h2>
+      <p>The speed is calculated from the Hall sensors, without an encoder. The three sensors give 6 edges per electrical cycle, so with 15 pole pairs there are 90 edges per turn. At each edge the STM32 calculates <strong>ω = (2π/90)/Δt</strong> and keeps the value until the next edge.</p>
+      <p>The result is a stepped speed signal. At 200 rpm there is a new value every 3.3 ms; at 20 rpm, only every 33 ms.</p>
+      <p>The speed controller is a PI with acceleration feed-forward and anti-windup (K<sub>p</sub> = 0.0177 A/rpm, T<sub>i</sub> = 2.0 s). Its output is the current reference of the current loop.</p>
+    </div>
+    <div class="instrument">
+      <div class="inst-head"><span class="inst-title">Speed seen by the controller</span><span class="inst-note">illustrative ramp</span></div>
+      <div class="legend"><span><i style="background:var(--reference)"></i>actual speed</span><span><i style="background:var(--measured)"></i>Hall estimate</span></div>
+      <div id="chart-speed"></div>
+      <div class="readouts">
+        <div class="readout"><div class="k">Target</div><div class="v" id="spd-target">200<small>rpm</small></div></div>
+        <div class="readout"><div class="k">Edges / s</div><div class="v" id="spd-eps">300</div></div>
+        <div class="readout"><div class="k">New value every</div><div class="v" id="spd-dt">3.3<small>ms</small></div></div>
+      </div>
+      <div class="controls">
+        <div class="control">
+          <label for="spd"><span>Target speed</span> <output id="spd-out">200 rpm</output></label>
+          <input type="range" id="spd" min="20" max="300" step="5" value="200">
+        </div>
+        <div class="btn-row"><button class="btn" type="button" id="spd-zoom" aria-pressed="false">Zoom: first 100 ms</button></div>
+      </div>
+      <details class="values" id="spd-values"><summary>Values</summary></details>
+    </div>
+  </div>
+</section>
+
+<!-- 06 RESULTS -->
+<section id="result">
+  <div class="wrap split">
+    <div class="prose">
+      <div class="kicker">06 · Results</div>
+      <h2>Results</h2>
+      <p>In the complete Simulink model, the current follows a 5 A step within a few milliseconds and recovers after each commutation. The speed reaches 200 rpm in about 0.6 s, with the stepped measurement described above.</p>
+      <p>On the scooter, the drive was tested on the floor: it could be driven, accelerated and braked correctly.</p>
+    </div>
+    <div id="results">
+      <figure class="evidence" data-fallback="current">
+        <img src="media/current-response.png" alt="Simulink: 5 A current step, Iref and measured current" loading="lazy">
+        <figcaption>Simulink, complete drive: 5 A current step.</figcaption>
+      </figure>
+      <figure class="evidence" data-fallback="speed">
+        <img src="media/speed-response.png" alt="Simulink: speed ramp to 200 rpm and the Hall-based estimate" loading="lazy">
+        <figcaption>Simulink, complete drive: speed to 200 rpm.</figcaption>
+      </figure>
+      <figure class="evidence media-slot" data-slot="scooter-video" hidden>
+        <video src="media/scooter-drive.mp4" controls playsinline muted preload="none"></video>
+        <figcaption>The scooter during the floor test.</figcaption>
+      </figure>
+      <figure class="evidence media-slot" data-slot="board-photo" hidden>
+        <img src="media/boards.jpg" alt="STM32, IFX007T inverter shield and measurement boards on the bench" loading="lazy">
+        <figcaption>Control hardware and measurement boards on the bench.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<section class="closing" id="contact">
+  <div class="wrap">
+    <div class="card">
+      <div class="kicker">Contact</div>
+      <h2>Looking for a Bachelor's thesis in automation or robotics</h2>
+      <p class="lede" style="margin-top:14px">In Västra Götaland, January to June 2027. I'm doing an Erasmus+ double degree between Mondragon Unibertsitatea and the University of Skövde.</p>
+      <div class="hero-cta">
+        <a class="btn primary" href="https://www.linkedin.com/in/perumendivil" rel="me">Contact on LinkedIn</a>
+        <a class="btn" href="media/BLDC-drive-control-Peru-Mendivil.pdf" download>Download the PDF (10 slides)</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Data: annex E of the project report, Mondragon Unibertsitatea, 2025-26. Current loop: linear model with the measured parameters. Phase margins are computed in continuous time, as MATLAB margin() does; the sampled response uses the 0.5 ms control period. Noise traces are illustrative.</p>
+    <p>Peru Mendivil, 2026</p>
+  </div>
+</footer>
+
+<dialog class="video" id="teaser-dialog">
+  <form method="dialog"><button class="btn" aria-label="Close">✕</button></form>
+  <video id="teaser-video" playsinline muted loop controls preload="none"></video>
+</dialog>
+
+</body>
+</html>
