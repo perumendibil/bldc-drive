@@ -237,11 +237,6 @@ figure.evidence figcaption { font-family: var(--mono); font-size: 12.5px; color:
 .foot { padding: 28px 0 48px; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
 .foot p + p { margin-top: 6px; }
 
-/* ---------- video dialog ---------- */
-dialog.video { margin: auto; border: 1px solid var(--grid-major); border-radius: 16px; background: var(--bg); padding: 0; width: min(92vw, 640px); }
-dialog.video::backdrop { background: #000c; }
-dialog.video video { width: 100%; height: auto; }
-dialog.video form { position: absolute; top: 8px; right: 8px; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

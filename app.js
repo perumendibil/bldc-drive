@@ -283,21 +283,18 @@ function initSpeed() {
 async function initMedia() {
   let manifest = {};
   try { manifest = await (await fetch("media/manifest.json", { cache: "no-cache" })).json(); } catch { /* no manifest: keep defaults */ }
-  if (manifest.teaser) {
-    const btn = $("play-teaser"), dlg = $("teaser-dialog"), vid = $("teaser-video");
-    btn.hidden = false;
-    btn.addEventListener("click", () => { vid.src = "media/teaser.mp4"; dlg.showModal(); vid.play().catch(() => {}); });
-    dlg.addEventListener("close", () => vid.pause());
-    // links from LinkedIn Featured use ?video=1 to open the summary straight away
-    if (new URLSearchParams(location.search).has("video")) btn.click();
-  }
+  // the summary video lives on its own page (video/), which LinkedIn can link to directly
+  if (manifest.teaser) $("play-teaser").hidden = false;
   if (manifest.scooterVideo) document.querySelector('[data-slot="scooter-video"]').hidden = false;
   if (manifest.boardPhoto) document.querySelector('[data-slot="board-photo"]').hidden = false;
 }
 
-initHero();
-initTau();
-initCurrent();
-initFilter();
-initSpeed();
-initMedia();
+// each part starts on its own, so a failure in one chart cannot block the others
+for (const init of [initMedia, initHero, initTau, initCurrent, initFilter, initSpeed]) {
+  try {
+    const r = init();
+    if (r && r.catch) r.catch((e) => console.error(init.name, e));
+  } catch (e) {
+    console.error(init.name, e);
+  }
+}
