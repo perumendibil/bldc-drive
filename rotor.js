@@ -11,6 +11,10 @@ const SENSOR_RAD = SENSOR_DEG.map((d) => (d * Math.PI) / 180);
 
 const mod = (a, m) => ((a % m) + m) % m;
 
+// Swiss palette, same values as style.css (SVG presentation attributes cannot use var())
+const COL = { ink: "#111111", muted: "#6b675f", hair: "#d3cfc5", grid: "#bdb8ad", bg: "#f5f4ef", disc: "#ebe9e2", red: "#e30613" };
+const FONT = "Inter, Helvetica Neue, Arial, sans-serif";
+
 /** 1 when a north pole is over sensor k at rotor angle theta (rad). */
 export function hallState(theta, k) {
   return Math.floor(mod(SENSOR_RAD[k] - theta, TWO_PI) / SECTOR) % 2 === 0 ? 1 : 0;
@@ -74,39 +78,30 @@ export class RotorView {
   constructor(container, { size } = {}) {
     const svg = el("svg", { viewBox: "-210 -210 420 420", role: "img", "aria-label": "Hub motor: 30 magnets rotating over three Hall sensors" }, container);
     if (size) { svg.setAttribute("width", size); svg.setAttribute("height", size); }
-    const defs = el("defs", {}, svg);
-    const glow = el("filter", { id: "rotor-glow", x: "-50%", y: "-50%", width: "200%", height: "200%" }, defs);
-    el("feGaussianBlur", { stdDeviation: 5 }, glow);
-    const halo = el("radialGradient", { id: "rotor-halo" }, defs);
-    el("stop", { offset: "55%", "stop-color": "#139fae", "stop-opacity": "0.16" }, halo);
-    el("stop", { offset: "100%", "stop-color": "#139fae", "stop-opacity": "0" }, halo);
-
-    el("circle", { r: 210, fill: "url(#rotor-halo)" }, svg);
     this.spin = el("g", {}, svg);
-    el("circle", { r: 194, fill: "none", stroke: "#121921", "stroke-width": 16 }, this.spin);
+    el("circle", { r: 194, fill: "none", stroke: COL.ink, "stroke-width": 16 }, this.spin);
     for (let i = 0; i < 72; i++) {
       const a = (i / 72) * TWO_PI;
-      el("line", { x1: 188 * Math.sin(a), y1: -188 * Math.cos(a), x2: 200 * Math.sin(a), y2: -200 * Math.cos(a), stroke: "#1c2631", "stroke-width": 2 }, this.spin);
+      el("line", { x1: 188 * Math.sin(a), y1: -188 * Math.cos(a), x2: 200 * Math.sin(a), y2: -200 * Math.cos(a), stroke: COL.muted, "stroke-width": 2 }, this.spin);
     }
-    el("circle", { r: 182, fill: "#0b1016", stroke: "#222e3b", "stroke-width": 1.5 }, this.spin);
+    el("circle", { r: 182, fill: COL.disc, stroke: COL.ink, "stroke-width": 1.5 }, this.spin);
     const gap = (1.4 * Math.PI) / 180;
     for (let i = 0; i < MAGNETS; i++) {
       const a0 = i * SECTOR + gap / 2, a1 = (i + 1) * SECTOR - gap / 2;
       const north = i % 2 === 0;
-      el("path", { d: arc(152, 176, a0, a1), fill: north ? "#139fae" : "#1d2a36", opacity: north ? 0.9 : 1 }, this.spin);
+      el("path", { d: arc(152, 176, a0, a1), fill: north ? COL.red : COL.ink }, this.spin);
     }
 
-    el("circle", { r: 146, fill: "#0c1117", stroke: "#1f2a36", "stroke-width": 1.5 }, svg);
-    el("circle", { r: 104, fill: "none", stroke: "#18212b", "stroke-width": 1 }, svg);
+    el("circle", { r: 146, fill: COL.bg, stroke: COL.ink, "stroke-width": 1.5 }, svg);
+    el("circle", { r: 104, fill: "none", stroke: COL.hair, "stroke-width": 1 }, svg);
 
     this.sensors = SENSOR_RAD.map((a, k) => {
       const g = el("g", { transform: `rotate(${SENSOR_DEG[k]})` }, svg);
-      const pulse = el("circle", { cx: 0, cy: -138, r: 10, fill: "none", stroke: "#5ef2e4", "stroke-width": 2, opacity: 0 }, g);
-      const glowRect = el("rect", { x: -9, y: -144, width: 18, height: 11, rx: 3, fill: "#5ef2e4", filter: "url(#rotor-glow)", opacity: 0 }, g);
-      const body = el("rect", { x: -8, y: -143.5, width: 16, height: 10, rx: 2.5, fill: "#26323f" }, g);
-      const label = el("text", { x: 0, y: -116, "text-anchor": "middle", fill: "#708090", "font-family": "IBM Plex Mono, monospace", "font-size": 12, transform: `rotate(${-SENSOR_DEG[k]} 0 -116)` }, g);
+      const pulse = el("circle", { cx: 0, cy: -138, r: 10, fill: "none", stroke: COL.red, "stroke-width": 2, opacity: 0 }, g);
+      const body = el("rect", { x: -8, y: -143.5, width: 16, height: 10, fill: COL.grid }, g);
+      const label = el("text", { x: 0, y: -116, "text-anchor": "middle", fill: COL.muted, "font-family": FONT, "font-size": 12, "font-weight": 700, transform: `rotate(${-SENSOR_DEG[k]} 0 -116)` }, g);
       label.textContent = `H${k + 1}`;
-      return { pulse, glowRect, body };
+      return { pulse, body };
     });
   }
 
@@ -114,8 +109,7 @@ export class RotorView {
     this.spin.setAttribute("transform", `rotate(${((theta * 180) / Math.PI).toFixed(3)})`);
     this.sensors.forEach((s, k) => {
       const on = states[k] === 1;
-      s.body.setAttribute("fill", on ? "#5ef2e4" : "#26323f");
-      s.glowRect.setAttribute("opacity", on ? 0.7 : 0);
+      s.body.setAttribute("fill", on ? COL.red : COL.grid);
       const age = pulseAges[k];
       if (age >= 0 && age < 0.18) {
         const f = age / 0.18;
@@ -151,9 +145,9 @@ export class LogicStrip {
     for (let k = 0; k < 3; k++) {
       const top = k * (rowH + gapH) + 2;
       const yHi = top + 3 * fs, yLo = top + rowH - 3 * fs;
-      const lab = el("text", { x: 0, y: top + rowH / 2 + 4 * fs, fill: "#708090", "font-family": "IBM Plex Mono, monospace", "font-size": 11.5 * fs }, svg);
+      const lab = el("text", { x: 0, y: top + rowH / 2 + 4 * fs, fill: COL.muted, "font-family": FONT, "font-size": 11.5 * fs, "font-weight": 700 }, svg);
       lab.textContent = `H${k + 1}`;
-      el("line", { x1: labelW, x2: width, y1: yLo, y2: yLo, stroke: "#18212b", "stroke-width": 1 }, svg);
+      el("line", { x1: labelW, x2: width, y1: yLo, y2: yLo, stroke: COL.hair, "stroke-width": 1 }, svg);
       const edges = tracker.edges[k];
       let state = hallStateAtStart(edges, t0, tracker, k);
       let d = `M${labelW},${state ? yHi : yLo}`;
@@ -164,7 +158,7 @@ export class LogicStrip {
         state = e.s;
       }
       d += `L${width},${state ? yHi : yLo}`;
-      el("path", { d, fill: "none", stroke: "#139fae", "stroke-width": 2 * fs, "stroke-linejoin": "round" }, svg);
+      el("path", { d, fill: "none", stroke: COL.ink, "stroke-width": 2 * fs, "stroke-linejoin": "miter" }, svg);
     }
   }
 }

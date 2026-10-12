@@ -15,14 +15,14 @@
 <meta property="og:image:height" content="627">
 <meta property="og:image:alt" content="Drawing of the hub motor with 30 magnets and the title BLDC motor control for an electric scooter">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#07090c">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307090c'/%3E%3Cpath d='M5 24h5c3 0 3-15 8-15h9' fill='none' stroke='%235ef2e4' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#111111">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111111'/%3E%3Cpath d='M5 24h5c3 0 3-15 8-15h9' fill='none' stroke='%23e30613' stroke-width='3.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=5">
 <script>if (new URLSearchParams(location.search).has("video")) location.replace("video/");</script>
-<script type="module" src="app.js?v=4"></script>
+<script type="module" src="app.js?v=5"></script>
 </head>
 <body>
 
@@ -86,7 +86,7 @@
       <p>I also designed and sized the measurement boards for the voltages, the currents and the Hall signals. To reduce electromagnetic noise I used twisted wiring, minimum loop areas between signal and ground, and a separate ground for each Hall output. The battery charger was designed by other members of the team.</p>
     </div>
     <div class="instrument">
-      <div class="inst-head"><span class="inst-title">Control structure on the STM32</span><span class="inst-note">cyan = designed by me</span></div>
+      <div class="inst-head"><span class="inst-title">Control structure on the STM32</span><span class="inst-note">red = designed by me</span></div>
       <svg class="diagram" viewBox="0 0 580 500" role="img" aria-label="Block diagram: speed reference into the speed PI, current PI, IFX007T inverter and BLDC motor; the filtered phase current returns to the current PI and a per-edge speed estimate returns to the speed PI">
         <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow" d="M0 1 L10 5 L0 9 Z"/></marker></defs>
         <path class="wire" d="M150 46 V90" marker-end="url(#arr)"/><path class="wire" d="M150 154 V198" marker-end="url(#arr)"/><path class="wire" d="M150 262 V306" marker-end="url(#arr)"/><path class="wire" d="M150 370 V414" marker-end="url(#arr)"/>
@@ -94,19 +94,19 @@
         <path class="wire" d="M270 432 H375 V230 H270" marker-end="url(#arr)"/><path class="flow fb" d="M270 432 H375 V230 H270"/>
         <path class="wire" d="M270 462 H505 V122 H270" marker-end="url(#arr)"/><path class="flow fb" d="M270 462 H505 V122 H270"/>
         <text x="150" y="34" text-anchor="middle">speed reference n*</text>
-        <rect class="box mine" x="30" y="90" width="240" height="64" rx="10"/>
+        <rect class="box mine" x="30" y="90" width="240" height="64"/>
         <text x="150" y="118" text-anchor="middle">Speed PI</text><text class="sub" x="150" y="138" text-anchor="middle">accel. feed-forward, anti-windup</text>
         <text class="sub" x="160" y="182">I*</text>
-        <rect class="box mine" x="30" y="198" width="240" height="64" rx="10"/>
+        <rect class="box mine" x="30" y="198" width="240" height="64"/>
         <text x="150" y="226" text-anchor="middle">Current PI</text><text class="sub" x="150" y="246" text-anchor="middle">Ti = L/R, back-EMF feed-forward</text>
         <text class="sub" x="160" y="290">V*</text>
-        <rect class="box" x="30" y="306" width="240" height="64" rx="10"/>
+        <rect class="box" x="30" y="306" width="240" height="64"/>
         <text x="150" y="334" text-anchor="middle">IFX007T inverter</text><text class="sub" x="150" y="354" text-anchor="middle">3-phase, 10 kHz PWM</text>
-        <rect class="box" x="30" y="414" width="240" height="64" rx="10"/>
+        <rect class="box" x="30" y="414" width="240" height="64"/>
         <text x="150" y="442" text-anchor="middle">BLDC hub motor</text><text class="sub" x="150" y="462" text-anchor="middle">15 pole pairs</text>
-        <rect class="box mine" x="300" y="300" width="150" height="52" rx="10"/>
+        <rect class="box mine" x="300" y="300" width="150" height="52"/>
         <text x="375" y="322" text-anchor="middle">Low-pass</text><text class="sub" x="375" y="340" text-anchor="middle">250 rad/s</text>
-        <rect class="box mine" x="440" y="160" width="130" height="52" rx="10"/>
+        <rect class="box mine" x="440" y="160" width="130" height="52"/>
         <text x="505" y="182" text-anchor="middle">ω = 2π/90 ÷ Δt</text><text class="sub" x="505" y="200" text-anchor="middle">per Hall edge</text>
         <text class="sub" x="280" y="425">phase current</text>
         <text class="sub" x="280" y="455">Hall edges</text>
@@ -221,6 +221,10 @@
           <div class="btn-row"><button class="btn" type="button" id="fc-design" aria-pressed="true">Design value: 250 rad/s</button></div>
         </div>
       </div>
+      <figure class="evidence">
+        <img src="media/bode-filter-matlab.png" alt="MATLAB Bode diagram of the current loop with the filter: gain margin infinite, phase margin 28 degrees at 470 rad/s" loading="lazy" width="1141" height="767">
+        <figcaption>MATLAB margin(), current loop with the 250 rad/s filter: 28° at 470 rad/s.</figcaption>
+      </figure>
       <div class="instrument">
         <div class="inst-head"><span class="inst-title">Measured current at 5 A</span><span class="inst-note">illustrative noise, not a measurement</span></div>
         <div class="legend"><span><i style="background:var(--muted)"></i>raw sensor</span><span><i style="background:var(--measured)"></i>filtered</span><span><i style="background:var(--reference)"></i>5 A</span></div>
@@ -301,7 +305,6 @@
       <p class="lede" style="margin-top:14px">In Västra Götaland, January to June 2027. I'm doing an Erasmus+ double degree between Mondragon Unibertsitatea and the University of Skövde.</p>
       <div class="hero-cta">
         <a class="btn primary" href="https://www.linkedin.com/in/perumendivil" rel="me">Contact on LinkedIn</a>
-        <a class="btn" href="media/BLDC-drive-control-Peru-Mendivil.pdf" download>Download the PDF (10 slides)</a>
       </div>
     </div>
   </div>
