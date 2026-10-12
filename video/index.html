@@ -15,24 +15,24 @@
 <meta property="og:image:height" content="627">
 <meta property="og:image:alt" content="Drawing of the hub motor with the title BLDC motor control and a 20-second summary play button">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#07090c">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307090c'/%3E%3Cpath d='M5 24h5c3 0 3-15 8-15h9' fill='none' stroke='%235ef2e4' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#111111">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111111'/%3E%3Cpath d='M5 24h5c3 0 3-15 8-15h9' fill='none' stroke='%23e30613' stroke-width='3.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css?v=5">
 <style>
   .watch { padding: 28px 0 56px; }
   .watch .wrap { max-width: 720px; }
   .watch h1 { font-size: clamp(30px, 6.5vw, 46px); margin-top: 12px; }
-  .player { position: relative; margin-top: 22px; border-radius: 16px; overflow: hidden; border: 1px solid var(--rule); background: var(--surface); aspect-ratio: 1 / 1; }
+  .player { position: relative; margin-top: 22px; overflow: hidden; border: 1px solid var(--ink); background: var(--surface); aspect-ratio: 1 / 1; }
   .player video { width: 100%; height: 100%; display: block; object-fit: contain; background: var(--bg); }
   .play-big {
     position: absolute; inset: 0; display: grid; place-items: center; border: 0; cursor: pointer;
-    background: radial-gradient(circle at center, #07090c55, #07090ccc); color: var(--ink);
+    background: #f5f4efb3; color: var(--ink);
   }
-  .play-big span { display: inline-flex; align-items: center; gap: 14px; font: 500 18px/1 var(--mono); background: var(--ink); color: var(--bg); border-radius: 999px; padding: 16px 26px 16px 20px; }
-  .play-big i { width: 0; height: 0; border-left: 18px solid var(--bg); border-top: 11px solid transparent; border-bottom: 11px solid transparent; }
+  .play-big span { display: inline-flex; align-items: center; gap: 14px; font: 700 18px/1 var(--sans); background: var(--accent); color: #fff; padding: 16px 26px 16px 20px; }
+  .play-big i { width: 0; height: 0; border-left: 18px solid #fff; border-top: 11px solid transparent; border-bottom: 11px solid transparent; }
   .watch .lede { margin-top: 20px; font-size: 18px; }
   .watch .hero-cta { margin-top: 20px; }
 </style>

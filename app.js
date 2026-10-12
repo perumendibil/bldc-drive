@@ -104,7 +104,7 @@ function initTau() {
     setReadout("tau-p", share.toFixed(1), "%");
     paintFill(slider);
     chart.setData(
-      [{ id: "i", label: "current", color: C.measured, data, glow: true, fmt: (v) => `${v.toFixed(3)} A` }],
+      [{ id: "i", label: "current", color: C.measured, data, fmt: (v) => `${v.toFixed(3)} A` }],
       [
         { type: "hline", y: MOTOR.iStepFinal, color: "var(--grid-major)", label: "final 1.04 A", labelX: "right" },
         { type: "hline", y: 0.632 * MOTOR.iStepFinal, color: C.reference, label: "63.2 %", labelX: "right" },
@@ -148,7 +148,7 @@ function initCurrent() {
     if (tau * 1e3 <= 6) overlays.push({ type: "vline", x: tau * 1e3, color: C.ink, label: `τcl ${(tau * 1e3).toFixed(2)} ms`, anchor: tau * 1e3 > 4.5 ? "end" : "start", labelY: 96 });
     chart.setData([
       { id: "ideal", label: "continuous design", color: C.muted, width: 1.5, data: ideal, fmt: (v) => `${v.toFixed(2)} A` },
-      { id: "sampled", label: "sampled 0.5 ms", color: C.measured, data: sampled, glow: true, fmt: (v) => `${v.toFixed(2)} A` },
+      { id: "sampled", label: "sampled 0.5 ms", color: C.measured, data: sampled, fmt: (v) => `${v.toFixed(2)} A` },
     ], overlays);
 
     $("kp-out").textContent = Kp.toFixed(2);
@@ -210,14 +210,14 @@ function initFilter() {
     const phAtWc = -180 + m.pm;
     mag.setData([
       { id: "nf", label: "no filter", color: C.muted, width: 1.5, data: noFilter.map((p) => ({ x: p.w, y: p.magDb })), fmt: (v) => `${v.toFixed(1)} dB` },
-      { id: "f", label: "with filter", color: C.measured, glow: true, data: b.map((p) => ({ x: p.w, y: p.magDb })), fmt: (v) => `${v.toFixed(1)} dB` },
+      { id: "f", label: "with filter", color: C.measured, data: b.map((p) => ({ x: p.w, y: p.magDb })), fmt: (v) => `${v.toFixed(1)} dB` },
     ], [
       { type: "hline", y: 0, color: "var(--grid-major)" },
       { type: "dot", x: m.wc, y: 0, color: "var(--ink)", label: `ωc ${Math.round(m.wc)}`, dy: -10 },
     ]);
     phase.setData([
       { id: "nf", label: "no filter", color: C.muted, width: 1.5, data: noFilter.map((p) => ({ x: p.w, y: p.phase })), fmt: (v) => `${v.toFixed(1)}°` },
-      { id: "f", label: "with filter", color: C.measured, glow: true, data: b.map((p) => ({ x: p.w, y: p.phase })), fmt: (v) => `${v.toFixed(1)}°` },
+      { id: "f", label: "with filter", color: C.measured, data: b.map((p) => ({ x: p.w, y: p.phase })), fmt: (v) => `${v.toFixed(1)}°` },
     ], [
       { type: "hline", y: -180, color: C.alert, label: "−180°", labelX: "left" },
       { type: "bracket", x: m.wc, y0: -180, y1: phAtWc, color: "var(--ink)", label: `PM ${m.pm.toFixed(0)}°`, anchor: m.wc > 2500 ? "end" : "start" },
@@ -227,7 +227,7 @@ function initFilter() {
     const left = noiseLeft(filtered);
     noise.setData([
       { id: "raw", label: "raw", color: C.muted, width: 1, opacity: 0.75, data: filtered.map((p) => ({ x: p.t * 1e3, y: p.raw })), fmt: (v) => `${v.toFixed(2)} A` },
-      { id: "flt", label: "filtered", color: C.measured, glow: true, data: filtered.map((p) => ({ x: p.t * 1e3, y: p.filtered })), fmt: (v) => `${v.toFixed(2)} A` },
+      { id: "flt", label: "filtered", color: C.measured, data: filtered.map((p) => ({ x: p.t * 1e3, y: p.filtered })), fmt: (v) => `${v.toFixed(2)} A` },
     ], [{ type: "hline", y: 5, color: C.reference, width: 2, under: true }]);
 
     $("fc-out").textContent = `${Math.round(fc)} rad/s`;
@@ -272,7 +272,7 @@ function initSpeed() {
     est.push({ x: 0.8, y: est[est.length - 1].y });
     chart.setData([
       { id: "true", label: "actual", color: C.reference, data: truth, fmt: (v) => `${v.toFixed(0)} rpm` },
-      { id: "hall", label: "Hall estimate", color: C.measured, step: true, glow: true, data: est, fmt: (v) => `${v.toFixed(0)} rpm` },
+      { id: "hall", label: "Hall estimate", color: C.measured, step: true, data: est, fmt: (v) => `${v.toFixed(0)} rpm` },
     ]);
     const eps = hallEdgesPerSecond(target);
     $("spd-out").textContent = `${target} rpm`;
