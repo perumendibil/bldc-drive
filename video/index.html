@@ -2,84 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>BLDC Motor Control · 20-second summary · Peru Mendivil</title>
-<meta name="description" content="20-second summary of the current and speed control of an electric scooter's BLDC hub motor on an STM32, with a link to the interactive version.">
-<meta name="author" content="Peru Mendivil">
-<meta property="og:type" content="video.other">
-<meta property="og:title" content="BLDC motor control: 20-second summary">
-<meta property="og:description" content="Current and speed control of an electric scooter's hub motor on an STM32. Video summary and interactive version with the measured motor parameters.">
-<meta property="og:url" content="https://perumendibil.github.io/bldc-drive/video/">
-<meta property="og:image" content="https://perumendibil.github.io/bldc-drive/media/video-card-plano.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="627">
-<meta property="og:image:alt" content="Section drawing of a hub motor beside a generated photo of it, with the title BLDC motor control for an electric scooter and a 20-second summary button">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#eef0ec">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23eef0ec'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%23262a6b' stroke-width='2.5'/%3E%3Cpath d='M16 2v28' stroke='%23c42019' stroke-width='2.5' stroke-dasharray='6 2 1.5 2'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Barlow+Semi+Condensed:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="video.css?v=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BLDC motor control for an electric scooter · Peru Mendivil</title>
+<!-- The 20-second summary was retired in Nov 2026. Old links (LinkedIn Featured) land on the main page. -->
+<link rel="canonical" href="https://perumendibil.github.io/bldc-drive/">
+<meta name="robots" content="noindex">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BLDC motor control for an electric scooter">
+<meta property="og:description" content="Motor characterisation, current loop and speed loop on an STM32, with the parameters I measured. My part of a team project at Mondragon Unibertsitatea, 2025-26.">
+<meta property="og:url" content="https://perumendibil.github.io/bldc-drive/">
+<meta property="og:image" content="https://perumendibil.github.io/bldc-drive/assets/og-card.png">
+<meta http-equiv="refresh" content="0; url=../">
+<script>location.replace("../" + location.hash);</script>
+<style>body{margin:0;padding:48px 20px;font:18px/1.6 system-ui,sans-serif;background:#FAFAFA;color:#171717}a{color:#1F3FD1}</style>
 </head>
 <body>
-
-<div class="frame" aria-hidden="true">
-  <div class="zx t"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
-  <div class="zx b"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
-  <div class="zy l"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span></div>
-  <div class="zy r"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span></div>
-</div>
-
-<header class="bar">
-  <a class="bar-name" href="../">Peru Mendivil</a>
-  <span class="bar-here" aria-hidden="true">Video · 20-second summary</span>
-  <a class="bar-link" href="../">Interactive version</a>
-  <a class="bar-cta" href="https://www.linkedin.com/in/perumendivil" rel="me">Contact on LinkedIn</a>
-</header>
-
-<main class="watch">
-  <div class="head">
-    <h1>BLDC motor control for an electric scooter</h1>
-    <p class="by">20-second summary <span>· Peru Mendivil</span></p>
-  </div>
-
-  <figure class="view">
-    <div class="player">
-      <video id="v" src="../media/teaser.mp4" poster="../media/teaser-poster.jpg" autoplay muted playsinline loop controls preload="auto"></video>
-      <button class="play-big" id="play" type="button" hidden aria-label="Play the 20-second summary"><span><i></i>Play the 20-second summary</span></button>
-    </div>
-    <figcaption class="vlabel">Video · 20-second summary <span>Charts from the motor model with the measured parameters. Opening photo: generated image, not my hardware.</span></figcaption>
-  </figure>
-
-  <div class="body">
-    <p class="lede">My part of a five-person project at Mondragon Unibertsitatea (2025-26): measurement boards, motor characterisation, and the current and speed control of the hub motor on an STM32.</p>
-    <div class="cta">
-      <a class="btn" href="../">Open the interactive version <svg viewBox="0 0 26 12" aria-hidden="true"><path d="M0 6H23M18 1l6 5l-6 5" fill="none" stroke="currentColor" stroke-width="2"/></svg></a>
-    </div>
-    <div class="tb">
-      <div><span class="k">Drawn by</span><span class="v">Peru Mendivil</span></div>
-      <div><span class="k">Project</span><span class="v">Electric scooter, Mondragon, <span class="nw">2025-26</span></span></div>
-      <div class="tb-contact"><span class="k">Contact</span><a href="https://www.linkedin.com/in/perumendivil" rel="me">Contact on LinkedIn <svg viewBox="0 0 26 12" aria-hidden="true"><path d="M0 6H23M18 1l6 5l-6 5" fill="none" stroke="currentColor" stroke-width="2"/></svg></a></div>
-    </div>
-  </div>
-</main>
-
-<script>
-  // Autoplay is muted, so most browsers allow it. In-app browsers (for example LinkedIn's)
-  // may still block it: then a large play button is shown and one tap starts the video.
-  (function () {
-    var v = document.getElementById("v"), play = document.getElementById("play"), started = false;
-    v.muted = true;
-    v.addEventListener("playing", function () { started = true; play.hidden = true; });
-    function attempt() {
-      var p = v.play();
-      if (p && p.catch) p.catch(function () { if (!started) play.hidden = false; });
-    }
-    play.addEventListener("click", function () { play.hidden = true; attempt(); });
-    attempt();
-    setTimeout(function () { if (!started && v.paused) play.hidden = false; }, 2500);
-  })();
-</script>
+<p>This page has moved. <a href="../">Go to BLDC motor control for an electric scooter</a>.</p>
 </body>
 </html>
