@@ -6,297 +6,974 @@
 <title>BLDC motor control for an electric scooter · Peru Mendivil</title>
 <meta name="description" content="Current and speed control of an electric scooter's BLDC hub motor on an STM32, with the motor parameters I measured. Move the gain and see where the sampled loop goes unstable.">
 <meta name="author" content="Peru Mendivil">
+<link rel="canonical" href="https://perumendibil.github.io/bldc-drive/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="BLDC motor control for an electric scooter">
-<meta property="og:description" content="Motor characterisation, current loop and speed loop on an STM32. My part of a team project at Mondragon Unibertsitatea, 2025-26.">
+<meta property="og:description" content="Motor characterisation, current loop and speed loop on an STM32, with the parameters I measured. My part of a team project at Mondragon Unibertsitatea, 2025-26.">
 <meta property="og:url" content="https://perumendibil.github.io/bldc-drive/">
 <meta property="og:image" content="https://perumendibil.github.io/bldc-drive/assets/og-card.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="627">
-<meta property="og:image:alt" content="Section drawing of a hub motor beside a generated photo of it, with the title BLDC motor control for an electric scooter">
+<meta property="og:image:alt" content="Title BLDC motor control for an electric scooter, a line drawing of the hub motor with 30 magnets and the measured values tau 3.36 ms and tau_cl 1 ms.">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="canonical" href="https://perumendibil.github.io/bldc-drive/">
-<meta name="theme-color" content="#eef0ec">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23eef0ec'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%23262a6b' stroke-width='2.5'/%3E%3Cpath d='M16 2v28' stroke='%23c42019' stroke-width='2.5' stroke-dasharray='6 2 1.5 2'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#FAFAFA">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23FAFAFA'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%23171717' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%231F3FD1'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Barlow+Semi+Condensed:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
-<script>if (new URLSearchParams(location.search).has("video")) location.replace("video/");</script>
-<link rel="preload" as="image" href="assets/hero-motor.webp">
-<link rel="stylesheet" href="scrollcraft.css">
-<link rel="stylesheet" href="site.css">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FAFAFA; --surface:#FFFFFF; --ink:#171717; --muted:#5F5F5F; --line:#E4E4E2;
+  --accent:#1F3FD1; --accent-tint:#EEF1FC; --warn:#B42318; --given:#F3F3F1;
+  --sans:"Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --ease:cubic-bezier(.4,0,.2,1); --out:cubic-bezier(.2,.7,.2,1);
+  --pad:clamp(20px,4vw,48px); --gap:24px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 18px/1.6 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+img{max-width:100%;display:block;height:auto}
+a{color:inherit}
+sub{font-size:.7em;line-height:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+.wrap{max-width:1240px;margin-inline:auto;padding-inline:var(--pad)}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--gap)}
+.mono{font-family:var(--mono)}
+.v{font-family:var(--mono);font-size:.9em;font-weight:500;letter-spacing:-.01em;white-space:nowrap}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;height:72px}
+.name{font-weight:600;font-size:16px;letter-spacing:-.015em;text-decoration:none;padding:12px 0}
+.nav{display:flex;align-items:center;gap:4px}
+.nav a.l{font-size:14px;color:var(--muted);text-decoration:none;padding:10px 12px;transition:color .15s var(--ease)}
+.nav a.l:hover{color:var(--ink)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 24px;border-radius:999px;font:500 15px/1 var(--sans);letter-spacing:-.005em;text-decoration:none;white-space:nowrap;transition:background-color .15s var(--ease),border-color .15s var(--ease),color .15s var(--ease)}
+.btn-ink{background:var(--ink);color:#fff;border:1px solid var(--ink)}
+.btn-ink:hover{background:#3A3A3A;border-color:#3A3A3A}
+.btn-accent{background:var(--accent);color:#fff;border:1px solid var(--accent)}
+.btn-accent:hover{background:#1932B0;border-color:#1932B0}
+.btn-line{background:var(--surface);color:var(--ink);border:1px solid #D2D2CF}
+.btn-line:hover{border-color:var(--ink)}
+.btn-sm{height:40px;padding:0 16px;font-size:14px;margin-left:8px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--gap);grid-template-rows:1fr auto;min-height:calc(100svh - 72px);align-items:center}
+.hero-text{grid-column:1/7;padding-block:40px}
+.context{font:400 13px/1.6 var(--mono);color:var(--muted);margin:0 0 32px;max-width:52ch}
+h1{font-weight:500;font-size:clamp(44px,5.6vw,80px);line-height:.96;letter-spacing:-.055em;margin:0;max-width:12ch}
+.role{font-size:clamp(18px,1.55vw,22px);line-height:1.45;letter-spacing:-.012em;margin:32px 0 14px;max-width:33ch}
+.actions{display:flex;flex-wrap:wrap;gap:12px}
+.hero-fig{grid-column:7/13;margin:0;padding-block:20px;justify-self:end;width:100%;max-width:520px}
+.motor{width:100%;overflow:visible;display:block}
+.legend{list-style:none;margin:4px 0 0;padding:0;font:400 13px/1.5 var(--mono);color:var(--muted);counter-reset:n}
+.legend li{counter-increment:n;display:grid;grid-template-columns:28px 1fr;padding:3px 0}
+.legend li::before{content:counter(n);color:var(--ink)}
+.legend .nts{grid-template-columns:1fr;margin-top:8px;color:var(--muted)}
+.legend .nts::before{content:none}
+.strip{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:var(--gap);border-top:1px solid var(--line);margin:0;padding:28px 0 36px}
+.strip div{min-width:0}
+.strip dt{font:450 clamp(22px,2.2vw,30px)/1.1 var(--mono);letter-spacing:-.03em;color:var(--ink)}
+.strip dd{margin:8px 0 0;font-size:14px;line-height:1.4;color:var(--muted)}
+
+/* motion: one moment, the opening */
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes show{from{opacity:0}to{opacity:1}}
+.hero-text>*{animation:rise .7s var(--out) both}
+.hero-text>:nth-child(2){animation-delay:.06s}
+.hero-text>:nth-child(3){animation-delay:.16s}
+.hero-text>:nth-child(4){animation-delay:.24s}
+.strip{animation:show .6s var(--ease) .55s both}
+.motor .dr{stroke-dasharray:1 1;animation:draw .8s var(--out) both}
+.motor .dr2{animation-delay:.12s}
+.motor .fillin{animation:show .4s var(--ease) .55s both}
+.motor .mag{animation:show .22s var(--ease) both}
+.motor .hall{animation:show .25s var(--ease) .85s both}
+.motor .mk{animation:show .3s var(--ease) .9s both}
+
+/* sections */
+.sec{padding-block:clamp(80px,9vw,128px);border-top:1px solid var(--line)}
+.sec h2{grid-column:1/10;font-weight:500;font-size:clamp(32px,4vw,56px);line-height:1.02;letter-spacing:-.045em;margin:0 0 clamp(36px,4.5vw,64px);max-width:18ch}
+.note{grid-column:1/4;font:400 14px/1.6 var(--mono);color:var(--muted);margin:0}
+.note p{margin:0 0 12px}
+.body{grid-column:4/11}
+.body.wide{grid-column:1/8}
+.body p{margin:0 0 1.15em;max-width:62ch}
+.body p:last-child{margin-bottom:0}
+.rev{display:inline-block;font:500 12px/1 var(--mono);color:var(--ink);border:1px solid var(--ink);padding:6px 8px;margin-bottom:14px;letter-spacing:.02em}
+.specs{margin:0;padding:0}
+.specs div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:9px 0}
+.specs dt{color:var(--muted)}
+.specs dd{margin:0;color:var(--ink)}
+.specs-title{color:var(--ink);margin:0 0 6px}
+.note .tools{margin-top:36px}
+sub{font-size:.76em}
+.v sub{font-size:.8em}
+
+figure{margin:0}
+.frame{background:var(--surface);border:1px solid var(--line);padding:clamp(8px,1.4vw,16px)}
+figcaption{font:400 13px/1.55 var(--mono);color:var(--muted);margin-top:12px;max-width:70ch}
+figcaption sub{font-size:12px}
+
+/* block diagram */
+.diagram{grid-column:1/-1;margin-top:clamp(56px,7vw,96px)}
+.diagram svg{width:100%;height:auto;display:block}
+.board svg{width:100%;height:auto;display:block;max-width:440px;margin-inline:auto}
+.board .ts{font-size:13px}.board .tl{font-size:14px}
+.boards-row{align-items:start}
+.boards-photo{grid-column:6/13;grid-row:1}
+.board{grid-column:1/6;grid-row:1}
+.pin-wrap{position:relative}
+.pin{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:var(--surface);border:1px solid var(--ink);font:500 13px/24px var(--mono);text-align:center;color:var(--ink);box-shadow:0 0 0 3px rgba(255,255,255,.55)}
+.legend.pins{margin-top:14px}
+.diagram .vert{display:none;max-width:420px}
+.bx{fill:var(--surface);stroke:var(--ink);stroke-width:1.25}
+.bx.mine{fill:var(--accent-tint);stroke:var(--accent);stroke-width:1.5}
+.bx.given{fill:var(--given);stroke:#9C9C99}
+.tt{font:500 15px var(--sans);fill:var(--ink);letter-spacing:-.01em}
+.ts{font:400 12px var(--mono);fill:var(--muted)}
+.tl{font:500 13px var(--mono);fill:var(--ink)}
+.ln{stroke:var(--ink);stroke-width:1.25;fill:none}
+.keys{display:flex;flex-wrap:wrap;gap:20px;font:400 13px/1.5 var(--mono);color:var(--muted);margin-top:14px}
+.keys span::before{content:"";display:inline-block;width:12px;height:12px;margin-right:8px;vertical-align:-1px;border:1.5px solid var(--accent);background:var(--accent-tint)}
+.keys span.g::before{border-color:#9C9C99;background:var(--given);border-width:1px}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:16px;line-height:1.45}
+.tbl th{text-align:left;font:500 13px/1.4 var(--mono);color:var(--muted);padding:0 16px 12px 0;border-bottom:1px solid var(--ink)}
+.tbl td{padding:14px 16px 14px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl td.n{font-family:var(--mono);font-size:14px;color:var(--muted);width:44px;padding-top:16px}
+.tbl .mine td{color:var(--ink)}
+.by{font-family:var(--mono);font-size:14px;color:var(--muted);white-space:nowrap}
+.mine .by{color:var(--accent);font-weight:600}
+.mine .by::before{content:"";display:inline-block;width:8px;height:8px;background:var(--accent);margin-right:8px;vertical-align:1px}
+.tbl .val{font-family:var(--mono);font-size:15px;white-space:nowrap}
+.tbl .how{color:var(--muted);font-size:15px}
+
+.row2{grid-column:1/-1;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--gap);margin-top:clamp(56px,7vw,96px);align-items:start}
+
+/* photo gaps */
+.hueco{position:relative;background:#F0F0EE;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+.hueco::before,.hueco::after{content:"";position:absolute;width:18px;height:18px;border:1px solid #9C9C99}
+.hueco::before{top:10px;left:10px;border-right:0;border-bottom:0}
+.hueco::after{bottom:10px;right:10px;border-left:0;border-top:0}
+.hueco span{font:400 13px/1.5 var(--mono);color:var(--muted);max-width:30ch}
+.r32{aspect-ratio:3/2}.r169{aspect-ratio:16/9}.r43{aspect-ratio:4/3}
+
+/* section 3 */
+.scope{grid-column:1/9}
+.hub{grid-column:9/13}
+.values{grid-column:1/-1;margin-top:clamp(56px,7vw,96px)}
+
+/* section 4: typographic, with the rate change as the figure (graft from variant C) */
+.rate .rev{grid-column:1/-1;justify-self:start;margin-bottom:18px}
+.rates{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:clamp(14px,2vw,28px);row-gap:0;margin:0;font-weight:500;letter-spacing:-.05em;line-height:.95}
+.rates span{white-space:nowrap}
+.rates .old{font-size:clamp(44px,6vw,88px);color:var(--muted);text-decoration:line-through;text-decoration-thickness:3px}
+.rates .arrow{font:400 clamp(24px,2.6vw,36px)/1 var(--mono);color:var(--muted);letter-spacing:0}
+.rates .new{font-size:clamp(72px,11vw,168px);color:var(--ink)}
+.rates-sub{grid-column:1/-1;font:400 14px/1.5 var(--mono);color:var(--muted);margin:14px 0 0}
+.rate .big{grid-column:1/9;margin-top:clamp(40px,5vw,64px);font-size:18px;line-height:1.6;letter-spacing:0;max-width:62ch}
+.big{grid-column:4/13;font-size:clamp(22px,2.4vw,32px);line-height:1.38;letter-spacing:-.02em;margin:0;max-width:34ch}
+
+/* section 5: the instrument */
+.instrument{grid-column:1/-1;margin-top:clamp(48px,6vw,80px);background:var(--surface);border:1px solid var(--ink);box-shadow:4px 4px 0 var(--ink);display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);grid-template-areas:"kp chart" "slider chart" "presets chart" "read chart";grid-template-rows:auto auto auto 1fr}
+.i-kp{grid-area:kp;padding:28px 28px 0}
+.i-slider{grid-area:slider;padding:8px 28px 0}
+.i-presets{grid-area:presets;padding:20px 28px 0}
+.i-read{grid-area:read;padding:28px;align-self:end}
+.i-chart{grid-area:chart;border-left:1px solid var(--line);padding:20px 20px 12px;min-width:0}
+.lab{display:block;font:400 13px/1.4 var(--mono);color:var(--muted)}
+.kpval{font:450 clamp(40px,4.4vw,60px)/1 var(--mono);letter-spacing:-.04em;margin-top:10px;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;margin:0;cursor:pointer}
+input[type=range]:focus-visible{outline:none}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
+input[type=range]::-moz-range-track{height:2px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--surface);border:2px solid var(--ink);margin-top:-11px;transition:transform .15s var(--ease)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--surface);border:2px solid var(--ink)}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.12)}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--accent)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--accent)}
+.zones{position:relative;margin:2px 12px 0;height:34px}
+.zones .bar{display:flex;height:4px}
+.zones .bar i{display:block;height:100%}
+.zones .z1{width:33.333%;background:#D9D9D6}
+.zones .z2{width:43.467%;background:#8F8F8C}
+.zones .z3{width:23.2%;background:var(--warn)}
+.zones b{position:absolute;top:10px;transform:translateX(-50%);font:400 12px/1 var(--mono);color:var(--muted);font-weight:400}
+.zones b::before{content:"";position:absolute;left:50%;top:-10px;width:1px;height:8px;background:var(--muted)}
+.zones .e0{left:0;transform:none}.zones .e0::before{left:0}
+.zones .e1{left:33.333%}.zones .e2{left:76.8%}
+.zones .e3{left:auto;right:0;transform:none}.zones .e3::before{left:auto;right:0}
+.presets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:10px}
+.presets button{min-height:44px;min-width:0;padding:0;font:500 14px/1 var(--mono);color:var(--ink);background:var(--surface);border:1px solid #D2D2CF;border-radius:8px;cursor:pointer;transition:border-color .15s var(--ease),background-color .15s var(--ease),color .15s var(--ease)}
+.presets button:hover{border-color:var(--ink)}
+.presets button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.read{display:grid;grid-template-columns:auto auto;justify-content:start;column-gap:28px;row-gap:12px;margin:0}
+.read dd{margin:6px 0 0;font:500 19px/1.25 var(--sans);letter-spacing:-.01em;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.read dd svg{flex:none}
+.read .peak{font-family:var(--mono);font-weight:450;font-variant-numeric:tabular-nums}
+.st-unstable{color:var(--warn)}
+.warnline{grid-column:1/-1;margin:2px 0 0;font:400 13px/1.5 var(--mono);color:var(--warn)}
+.chart svg{display:block;width:100%}
+.ax{font:400 12px var(--mono);fill:var(--muted)}
+.halo{paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+.cap5{grid-column:4/13;margin-top:16px}
+.revb{margin-top:clamp(64px,8vw,104px)}
+
+/* section 6, 7 */
+.side-text{grid-column:1/6}
+.side-text p{margin:0 0 1.15em}
+.side-fig{grid-column:7/13}
+.side-fig.left{grid-column:1/8;grid-row:2}
+.side-text.right{grid-column:9/13;grid-row:2}
+.side-text.right.wide{grid-column:8/13}
+
+/* results */
+.res-a{grid-column:1/7}.res-b{grid-column:7/13}
+.res-video{grid-column:1/7}
+.res-video img{width:100%;max-width:678px}
+.res-side{grid-column:9/13;align-self:end;padding-bottom:36px}
+.res-side p{margin:0 0 20px;font-size:18px}
+.vlink{display:inline-flex;align-items:center;min-height:44px;font:500 15px/1.3 var(--sans);text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:1px}
+.vlink:hover{text-decoration-thickness:2px}
+
+/* contact */
+.contact h2{grid-column:1/12;font-size:clamp(40px,6vw,88px);line-height:.98;letter-spacing:-.055em;max-width:16ch;margin-bottom:36px}
+.contact p{grid-column:1/8;margin:0 0 36px;font-size:clamp(18px,1.5vw,21px);line-height:1.5;color:var(--muted);max-width:46ch}
+.contact .actions{grid-column:1/-1}
+
+footer{border-top:1px solid var(--line);padding-block:40px 56px;font:400 13px/1.6 var(--mono);color:var(--muted)}
+footer .grid p{margin:0 0 12px}
+footer .f1{grid-column:1/7}
+footer .f2{grid-column:8/13}
+
+@media (max-width:1000px){
+  .hero-text{grid-column:1/-1}
+  .hero-fig{grid-column:1/-1;max-width:460px;justify-self:start}
+  .hero{grid-template-rows:auto}
+  .hero-fig{order:3}.strip{order:2}
+}
+@media (max-width:860px){
+  :root{--gap:16px}
+  body{font-size:17px}
+  .grid,.row2{grid-template-columns:minmax(0,1fr)}
+  .grid>*,.row2>*{grid-column:1/-1!important;grid-row:auto!important}
+  .nav a.l{display:none}
+  .btn-sm{height:44px;margin-left:0}
+  .top{height:64px}
+  .hero{min-height:0;grid-template-columns:minmax(0,1fr)}
+  .hero>*{grid-column:1/-1}
+  .hero-text{padding-block:20px 0}
+  .context{font-size:13px;margin-bottom:24px}
+  h1{letter-spacing:-.05em;line-height:.98}
+  .role{margin:20px 0 12px}
+  .actions .btn{flex:1 1 100%;height:52px;font-size:16px}
+  .strip{grid-template-columns:1fr 1fr;row-gap:20px;padding:22px 0 8px;margin-top:36px}
+  .strip dd{font-size:13px;margin-top:6px}
+  .hero-fig{padding-block:40px 64px;max-width:none}
+  .motor{max-width:320px;margin-inline:auto;display:block}
+  .note{margin-bottom:24px}
+  .note .tools{margin-top:28px}
+  .res-side{padding-bottom:0}
+  .diagram .horiz{display:none}
+  .diagram .vert{display:block}
+  .hub,.values{margin-top:40px}
+  .row2>*+*{margin-top:40px}
+  .cap5{margin-top:14px}
+  .side-fig{margin-top:40px}
+  .side-fig.left{margin-top:0;margin-bottom:36px}
+  .res-video{margin-top:0}
+  .instrument{grid-template-columns:minmax(0,1fr);grid-template-areas:"kp" "read" "chart" "slider" "presets";grid-template-rows:auto;box-shadow:3px 3px 0 var(--ink)}
+  .i-kp{padding:20px 20px 0}
+  .i-read{padding:16px 20px 0;align-self:start}
+  .i-chart{border-left:0;border-top:1px solid var(--line);margin-top:18px;padding:14px 8px 6px 4px}
+  .i-slider{padding:8px 20px 0;border-top:1px solid var(--line)}
+  .i-presets{padding:12px 20px 22px}
+  .read{grid-template-columns:1fr 1fr;column-gap:16px}
+  .read dd{font-size:17px}
+  .kpval{font-size:44px}
+  .contact p{margin-bottom:28px}
+  .contact .actions .btn{flex:1 1 100%}
+  footer .f2{margin-top:12px}
+}
+@media (max-width:640px){
+  .tbl{font-size:16px}
+  .tbl thead{display:none}
+  .tbl tr{display:grid;border-bottom:1px solid var(--line);padding:14px 0}
+  .tbl td{border:0;padding:0}
+  .parts tr{grid-template-columns:32px 1fr;row-gap:4px}
+  .parts td.n{padding-top:2px;width:auto}
+  .parts td.by{grid-column:2}
+  .vals tr{grid-template-columns:1fr auto;column-gap:16px;row-gap:4px}
+  .vals td.how{grid-column:1/-1;font-size:14px}
+  .vals .val{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
 </head>
 <body>
 
-<div class="frame" aria-hidden="true">
-  <div class="zx t"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
-  <div class="zx b"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
-  <div class="zy l"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span></div>
-  <div class="zy r"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span></div>
-</div>
-
-<header class="bar">
-  <a class="bar-name" href="#a">Peru Mendivil</a>
-  <nav class="bar-index" aria-label="Views on this sheet">
-    <a href="#a" data-nav="a">Section A-A</a>
-    <a href="#parts" data-nav="parts">Parts</a>
-    <a href="#b" data-nav="b">Detail B</a>
-    <a href="#rev" data-nav="rev">Rev A</a>
-    <a href="#c" data-nav="c">Detail C</a>
-    <a href="#d" data-nav="d">Details D, E</a>
-    <a href="#results" data-nav="results">Results</a>
-    <a href="#contact" data-nav="contact">Title block</a>
+<header class="wrap top">
+  <a class="name" href="#top">Peru Mendivil</a>
+  <nav class="nav" aria-label="Sections">
+    <a class="l" href="#part">My part</a>
+    <a class="l" href="#motor">The motor</a>
+    <a class="l" href="#limit">Loop limit</a>
+    <a class="l" href="#results">Results</a>
+    <a class="btn btn-accent btn-sm" href="https://www.linkedin.com/in/perumendivil" rel="me">LinkedIn</a>
   </nav>
-  <span class="bar-here" aria-hidden="true">Section A-A</span>
-  <a class="bar-cta" href="https://www.linkedin.com/in/perumendivil" rel="me">Contact on LinkedIn</a>
 </header>
 
 <main id="top">
+<section class="wrap hero" aria-labelledby="h1">
+  <div class="hero-text">
+    <h1 id="h1">BLDC motor control for an electric scooter</h1>
+    <p class="role">I designed the measurement boards, characterised the motor and implemented the current and speed control on an STM32.</p>
+    <div class="context">Mondragon Unibertsitatea, 2025-26 · Team project, five students. My part was the drive.</div>
+    <div class="actions">
+      <a class="btn btn-accent" href="https://www.linkedin.com/in/perumendivil" rel="me">Contact on LinkedIn</a>
+      <a class="btn btn-line" href="#limit">See where the loop goes unstable</a>
+    </div>
+  </div>
 
-<!-- A · Section A-A. The cutting plane turns the generated photo into the drawing. -->
-<section id="a" class="act act-hero" data-sc-act="pin" data-sc-span="2" data-view="Section A-A" data-rm-flow>
-  <div data-sc-stage>
-    <div class="hero" id="heroStage" data-sc-verify-state="">
-      <div class="hero-text" data-sc-cue="0 1 0 0">
-        <h1>BLDC motor control for an electric scooter</h1>
-        <p class="by">Peru Mendivil <span>· Mondragon Unibertsitatea, 2025-26</span></p>
-        <div class="notes">
-          <h2>Notes</h2>
-          <ol>
-            <li><span>Team project, five students. My part was the drive.</span></li>
-            <li><span>I designed the measurement boards and characterised the motor: <b>τ = 3.36 ms</b>, measured on the bench.</span></li>
-            <li><span>I implemented the current and speed control on an STM32. The current loop closes in <b>τ<sub>cl</sub> = 1 ms</b>.</span></li>
-          </ol>
-        </div>
-        <div class="cta">
-          <a class="btn" href="https://www.linkedin.com/in/perumendivil" rel="me">Contact on LinkedIn <svg viewBox="0 0 26 12" aria-hidden="true"><path d="M0 6H23M18 1l6 5l-6 5" fill="none" stroke="currentColor" stroke-width="2"/></svg></a>
-          <a class="lnk" href="#c">Detail C: the sampling limit</a>
-        </div>
+  <figure class="hero-fig" aria-labelledby="motor-cap">
+    <svg class="motor" id="motorSvg" viewBox="-232 -232 464 464" role="img" aria-label="Drawing of the hub motor: outer rotor with 30 alternating magnets, stator with a 3-phase winding, 3 Hall sensors and the axle. Not to scale.">
+      <circle class="dr" pathLength="1" r="184" fill="none" stroke="#171717" stroke-width="1.25"/>
+      <circle class="dr dr2" pathLength="1" r="168" fill="none" stroke="#171717" stroke-width="1"/>
+      <g id="mags"></g>
+      <circle class="fillin" r="142" fill="#F0F0EE"/>
+      <circle class="dr dr2" pathLength="1" r="142" fill="none" stroke="#171717" stroke-width="1"/>
+      <circle class="dr" pathLength="1" r="122" fill="none" stroke="#9C9C99" stroke-width="1" stroke-dasharray="2 5"/>
+      <circle class="fillin" r="60" fill="#FAFAFA"/>
+      <circle class="dr" pathLength="1" r="60" fill="none" stroke="#171717" stroke-width="1"/>
+      <g id="halls"></g>
+      <circle class="fillin" r="18" fill="#171717"/>
+      <circle class="fillin" r="7" fill="#FAFAFA"/>
+      <g id="marks"></g>
+    </svg>
+    <ol class="legend" id="motor-cap">
+      <li>Magnets, 30 (15 pole pairs)</li>
+      <li>Hall sensors, 3 (90 edges per turn)</li>
+      <li>Stator winding, 3-phase</li>
+      <li>Axle</li>
+      <li class="nts">Drawing, not to scale</li>
+    </ol>
+  </figure>
+
+  <dl class="strip">
+    <div><dt>τ = 3.36 ms</dt><dd>motor time constant, measured</dd></div>
+    <div><dt>τ<sub>cl</sub> = 1 ms</dt><dd>current loop on an STM32</dd></div>
+    <div><dt>15</dt><dd>pole pairs</dd></div>
+    <div><dt>90</dt><dd>Hall edges per turn</dd></div>
+  </dl>
+</section>
+
+<!-- 2 · My part -->
+<section class="sec" id="part" aria-labelledby="h-part">
+  <div class="wrap grid">
+    <h2 id="h-part">My part of the drive</h2>
+    <aside class="note">
+      <p class="specs-title">The scooter</p>
+      <dl class="specs">
+        <div><dt>Battery voltage</dt><dd>24 V</dd></div>
+        <div><dt>Maximum current</dt><dd>30 A</dd></div>
+        <div><dt>Top speed</dt><dd>15 km/h</dd></div>
+      </dl>
+      <p class="specs-title tools">Tools</p>
+      <p>STM32<br>IFX007T inverter<br>MATLAB / Simulink<br>10 kHz PWM</p>
+    </aside>
+    <div class="body">
+      <p>The hub motor and the IFX007T inverter were given. I designed and sized the measurement boards and did the control between them on an STM32: two PI controllers in cascade, a back-EMF feed-forward, a low-pass filter on the measured current and a speed estimate from the Hall sensors.</p>
+      <p>The current board carries the Hall-effect current sensors, resistor voltage dividers and op-amp buffers, soldered by hand on perfboard. To reduce electromagnetic noise I used twisted wiring, minimum loop areas between signal and ground, and a separate ground for each Hall output.</p>
+    </div>
+
+    <figure class="diagram">
+      <svg class="horiz" viewBox="-4 0 1008 300" role="img" aria-label="Control structure. Speed reference to Speed PI, current reference to Current PI, voltage reference to the IFX007T inverter and the BLDC hub motor. Phase current returns through the measurement boards and a 250 rad/s low-pass to the Current PI; Hall edges return through the measurement boards and the speed estimate to the Speed PI.">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9 z" fill="#171717"/></marker></defs>
+        <text class="tl" x="0" y="68">n*</text>
+        <path class="ln" d="M28 63 H68" marker-end="url(#ah)"/>
+        <rect class="bx mine" x="70" y="30" width="180" height="66"/>
+        <text class="tt" x="86" y="58">Speed PI</text><text class="ts" x="86" y="80">accel. FF, anti-windup</text>
+        <path class="ln" d="M250 63 H318" marker-end="url(#ah)"/><text class="tl" x="276" y="54">I*</text>
+        <rect class="bx mine" x="320" y="30" width="200" height="66"/>
+        <text class="tt" x="336" y="58">Current PI</text><text class="ts" x="336" y="80">Ti = L/R, back-EMF FF</text>
+        <path class="ln" d="M520 63 H588" marker-end="url(#ah)"/><text class="tl" x="545" y="54">V*</text>
+        <rect class="bx given" x="590" y="30" width="180" height="66"/>
+        <text class="tt" x="606" y="58">IFX007T inverter</text><text class="ts" x="606" y="80">3-phase, 10 kHz PWM</text>
+        <path class="ln" d="M770 63 H818" marker-end="url(#ah)"/>
+        <rect class="bx given" x="820" y="30" width="180" height="66"/>
+        <text class="tt" x="836" y="58">BLDC hub motor</text><text class="ts" x="836" y="80">15 pole pairs</text>
+
+        <path class="ln" d="M870 96 V170 H762" marker-end="url(#ah)"/><text class="ts" x="772" y="162">phase current</text>
+        <path class="ln" d="M950 96 V250 H762" marker-end="url(#ah)"/><text class="ts" x="772" y="242">Hall edges</text>
+        <rect class="bx mine" x="560" y="140" width="200" height="140"/>
+        <text class="tt" x="576" y="200">Measurement boards</text>
+        <text class="ts" x="576" y="222">voltages, phase</text><text class="ts" x="576" y="238">currents, Hall signals</text>
+
+        <path class="ln" d="M560 170 H502" marker-end="url(#ah)"/>
+        <rect class="bx mine" x="330" y="145" width="170" height="54"/>
+        <text class="tt" x="346" y="168">Low-pass</text><text class="ts" x="346" y="188">250 rad/s</text>
+        <path class="ln" d="M415 145 V98" marker-end="url(#ah)"/>
+
+        <path class="ln" d="M560 250 H302" marker-end="url(#ah)"/>
+        <rect class="bx mine" x="110" y="218" width="190" height="74"/>
+        <text class="tt" x="126" y="242">Speed estimate</text><text class="ts" x="126" y="262">ω = (2π/90)/Δt</text><text class="ts" x="126" y="280">per Hall edge</text>
+        <path class="ln" d="M160 218 V98" marker-end="url(#ah)"/>
+      </svg>
+
+      <svg class="vert" viewBox="-4 -4 348 512" role="img" aria-label="Control structure, vertical. Speed PI, Current PI, IFX007T inverter and BLDC hub motor in a chain; phase current and Hall edges return through the measurement boards, the low-pass and the speed estimate.">
+        <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9 z" fill="#171717"/></marker></defs>
+        <text class="tl" x="102" y="14">n*</text>
+        <path class="ln" d="M95 0 V38" marker-end="url(#ah2)"/>
+        <rect class="bx mine" x="0" y="40" width="190" height="60"/>
+        <text class="tt" x="12" y="65">Speed PI</text><text class="ts" x="12" y="86">accel. FF, anti-windup</text>
+        <path class="ln" d="M95 100 V138" marker-end="url(#ah2)"/><text class="tl" x="104" y="124">I*</text>
+        <rect class="bx mine" x="0" y="140" width="190" height="60"/>
+        <text class="tt" x="12" y="165">Current PI</text><text class="ts" x="12" y="186">Ti = L/R, back-EMF FF</text>
+        <path class="ln" d="M95 200 V238" marker-end="url(#ah2)"/><text class="tl" x="104" y="224">V*</text>
+        <rect class="bx given" x="0" y="240" width="190" height="60"/>
+        <text class="tt" x="12" y="265">IFX007T inverter</text><text class="ts" x="12" y="286">3-phase, 10 kHz PWM</text>
+        <path class="ln" d="M95 300 V338" marker-end="url(#ah2)"/>
+        <rect class="bx given" x="0" y="340" width="190" height="60"/>
+        <text class="tt" x="12" y="365">BLDC hub motor</text><text class="ts" x="12" y="386">15 pole pairs</text>
+        <path class="ln" d="M95 400 V438" marker-end="url(#ah2)"/>
+        <rect class="bx mine" x="0" y="440" width="340" height="62"/>
+        <text class="tt" x="12" y="465">Measurement boards</text><text class="ts" x="12" y="487">voltages, phase currents, Hall signals</text>
+
+        <rect class="bx mine" x="206" y="240" width="100" height="60"/>
+        <text class="tt" x="216" y="265">Low-pass</text><text class="ts" x="216" y="286">250 rad/s</text>
+        <path class="ln" d="M256 440 V302" marker-end="url(#ah2)"/>
+        <text class="ts" transform="translate(250 430) rotate(-90)">phase current</text>
+        <path class="ln" d="M256 240 V170 H192" marker-end="url(#ah2)"/>
+
+        <rect class="bx mine" x="206" y="40" width="134" height="70"/>
+        <text class="tt" x="216" y="62" style="font-size:14px">Speed estimate</text><text class="ts" x="216" y="82">ω = (2π/90)/Δt</text><text class="ts" x="216" y="99">per Hall edge</text>
+        <path class="ln" d="M326 440 V112" marker-end="url(#ah2)"/>
+        <text class="ts" transform="translate(320 430) rotate(-90)">Hall edges</text>
+        <path class="ln" d="M206 70 H192" marker-end="url(#ah2)"/>
+      </svg>
+      <div class="keys"><span>My part</span><span class="g">Given</span></div>
+    </figure>
+
+    <div class="row2">
+      <div style="grid-column:1/10">
+        <table class="tbl parts">
+          <caption class="sr-only" style="position:absolute;left:-9999px">Who did what</caption>
+          <thead><tr><th>Item</th><th>Description</th><th>By</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>Magnets, 30 (15 pole pairs)</td><td class="by">given, hub motor</td></tr>
+            <tr><td class="n">2</td><td>Hall sensors, 3 (90 edges per turn)</td><td class="by">given, hub motor</td></tr>
+            <tr><td class="n">3</td><td>Stator winding, 3-phase</td><td class="by">given, hub motor</td></tr>
+            <tr><td class="n">4</td><td>Axle</td><td class="by">given, hub motor</td></tr>
+            <tr><td class="n">5</td><td>IFX007T inverter shield, 10 kHz PWM</td><td class="by">given</td></tr>
+            <tr class="mine"><td class="n">6</td><td>Measurement boards: voltages, phase currents, Hall signals</td><td class="by">Peru Mendivil</td></tr>
+            <tr class="mine"><td class="n">7</td><td>Motor characterisation: R, L, τ, K<sub>em</sub>, damping</td><td class="by">Peru Mendivil</td></tr>
+            <tr class="mine"><td class="n">8</td><td>Current and speed control on the STM32</td><td class="by">Peru Mendivil</td></tr>
+            <tr><td class="n">9</td><td>Battery charger</td><td class="by">other team members</td></tr>
+          </tbody>
+        </table>
       </div>
-      <figure class="view-a">
-        <div class="cgrid" data-sc-parallax="-0.35" aria-hidden="true"></div>
-        <div class="plate" id="plate" data-sc-parallax="-0.9">
-          <div class="plate-shadow" aria-hidden="true"></div>
-          <img class="photo" src="assets/hero-motor.webp" width="1400" height="1400" alt="Generated photograph of an opened outer-rotor hub motor: steel rim, ring of magnets, copper winding on the stator and the axle.">
-          <svg class="section" id="section" viewBox="0 0 1000 1000" role="img" aria-label="Section drawing of the hub motor: rim, 30 magnets for 15 pole pairs, stator with winding, three Hall sensors, bearing and axle"></svg>
-          <svg class="callouts" id="callouts" viewBox="0 0 1000 1000" aria-hidden="true"></svg>
-          <div class="cut" aria-hidden="true">
-            <svg viewBox="0 0 60 1000" preserveAspectRatio="none" class="cut-line"><path d="M30 0V1000"/></svg>
-            <span class="cut-end top"><b>A</b><i></i></span>
-            <span class="cut-end bottom"><b>A</b><i></i></span>
-          </div>
+    </div>
+    <div class="row2 boards-row">
+      <figure class="boards-photo">
+        <div class="frame"><div class="pin-wrap">
+          <img src="assets/boards.jpg" width="756" height="570" loading="lazy" alt="The measurement boards on perfboard inside the control box: on the left, blue Hall-effect current sensors with op-amps and resistors; in the centre, a second board with two op-amps and two blue trimmers; green screw terminals and red and black wires.">
+          <span class="pin" style="left:9%;top:44%" aria-hidden="true">1</span>
+          <span class="pin" style="left:71%;top:44%" aria-hidden="true">2</span>
+        </div></div>
+        <ol class="legend pins">
+          <li>Current board: four Hall-effect current sensors, one per phase and one on the inverter DC bus</li>
+          <li>Conditioning board for the sensor outputs to the STM32</li>
+        </ol>
+        <figcaption>The measurement boards inside the control box on the handlebar.</figcaption>
+      </figure>
+      <figure class="board">
+        <div class="frame">
+        <svg viewBox="-6 -2 372 446" role="img" aria-label="Drawing of the measurement boards: phase currents, voltages and Hall signals go into the boards, which carry Hall-effect current sensors, resistor voltage dividers and op-amp buffers, and out to the STM32. Below, the three noise-reduction techniques: twisted wiring, minimum loop area between signal and ground, and a separate ground for each Hall output.">
+          <defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9 z" fill="#171717"/></marker></defs>
+          <text class="tl" x="60" y="14" text-anchor="middle">Phase currents</text>
+          <text class="tl" x="180" y="14" text-anchor="middle">Voltages</text>
+          <text class="tl" x="300" y="14" text-anchor="middle">Hall signals</text>
+          <path class="ln" d="M60 24 V64" marker-end="url(#ah3)"/>
+          <path class="ln" d="M180 24 V64" marker-end="url(#ah3)"/>
+          <path class="ln" d="M300 24 V64" marker-end="url(#ah3)"/>
+          <rect class="bx mine" x="0" y="66" width="360" height="160"/>
+          <text class="tt" x="16" y="96">Measurement boards</text>
+          <text class="ts" x="16" y="126">Hall-effect current sensors</text>
+          <text class="ts" x="16" y="148">Resistor voltage dividers</text>
+          <text class="ts" x="16" y="170">Op-amp buffers</text>
+          <text class="ts" x="16" y="206">soldered by hand on perfboard</text>
+          <path class="ln" d="M180 226 V262" marker-end="url(#ah3)"/>
+          <rect class="bx" x="120" y="264" width="120" height="46"/>
+          <text class="tt" x="180" y="292" text-anchor="middle">STM32</text>
+          <line x1="0" y1="338" x2="360" y2="338" stroke="#E4E4E2"/>
+          <text class="ts" x="0" y="358">To reduce electromagnetic noise</text>
+          <path d="M30 388 C40 372 50 372 60 388 S80 404 90 388" fill="none" stroke="#171717" stroke-width="1.5"/>
+          <path d="M30 388 C40 404 50 404 60 388 S80 372 90 388" fill="none" stroke="#1F3FD1" stroke-width="1.5"/>
+          <path d="M150 384 H210 M150 392 H210" fill="none" stroke="#171717" stroke-width="1.5"/>
+          <path d="M150 384 V392 M210 384 V392" fill="none" stroke="#171717" stroke-width="1.5"/>
+          <g fill="none" stroke="#171717" stroke-width="1.5">
+            <path d="M276 374 V386 M268 386 H284 M271 391 H281 M274 396 H278"/>
+            <path d="M300 374 V386 M292 386 H308 M295 391 H305 M298 396 H302"/>
+            <path d="M324 374 V386 M316 386 H332 M319 391 H329 M322 396 H326"/>
+          </g>
+          <text class="ts" x="60" y="422" text-anchor="middle">Twisted</text><text class="ts" x="60" y="438" text-anchor="middle">wiring</text>
+          <text class="ts" x="180" y="422" text-anchor="middle">Minimum</text><text class="ts" x="180" y="438" text-anchor="middle">loop area</text>
+          <text class="ts" x="300" y="422" text-anchor="middle">Separate ground</text><text class="ts" x="300" y="438" text-anchor="middle">per Hall output</text>
+        </svg>
         </div>
-        <figcaption class="vlabel">Section A-A <span>Drawing illustrative, not to scale. Photo: generated image, not my hardware.</span></figcaption>
+        <figcaption>Measurement boards: drawing, not a schematic.</figcaption>
       </figure>
     </div>
   </div>
 </section>
 
-<!-- Parts list: who did what -->
-<section id="parts" class="act sc-section parts-act" data-sc-act="flow" data-view="Parts list">
-  <div class="wrap two">
-    <div class="sc-stack" data-sc-in data-sc-stagger="60">
-      <h2 class="h2">My part of the drive</h2>
-      <p class="lede">The hub motor and the IFX007T inverter were given. I designed and sized the measurement boards and did the control between them on an STM32: two PI controllers in cascade, a back-EMF feed-forward, a low-pass filter on the measured current and a speed estimate from the Hall sensors.</p>
-      <table class="tbl parts" aria-describedby="partsLabel">
-        <thead><tr><th scope="col">Item</th><th scope="col">Description</th><th scope="col">By</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>Magnets, 30 (15 pole pairs)</td><td>given, hub motor</td></tr>
-          <tr><td>2</td><td>Hall sensors, 3 (90 edges per turn)</td><td>given, hub motor</td></tr>
-          <tr><td>3</td><td>Stator winding, 3-phase</td><td>given, hub motor</td></tr>
-          <tr><td>4</td><td>Axle</td><td>given, hub motor</td></tr>
-          <tr><td>5</td><td>IFX007T inverter shield, 10 kHz PWM</td><td>given</td></tr>
-          <tr class="mine"><td>6</td><td>Measurement boards: voltages, phase currents, Hall signals</td><td>Peru Mendivil</td></tr>
-          <tr class="mine"><td>7</td><td>Motor characterisation: R, L, τ, K<sub>em</sub>, damping</td><td>Peru Mendivil</td></tr>
-          <tr class="mine"><td>8</td><td>Current and speed control on the STM32</td><td>Peru Mendivil</td></tr>
-          <tr><td>9</td><td>Battery charger</td><td>other team members</td></tr>
-        </tbody>
-      </table>
-      <p class="vlabel" id="partsLabel">Parts list <span>Items 1 to 4 as marked on Section A-A</span></p>
+<!-- 3 · Measuring the motor -->
+<section class="sec" id="motor" aria-labelledby="h-motor">
+  <div class="wrap grid">
+    <h2 id="h-motor">Measuring the motor</h2>
+    <div class="body wide">
+      <p>For R and L the rotor is locked, so there is no back-EMF. A voltage step then gives a first-order current response, and the time constant is the time to reach 63.2 % of the final value. I measured <span class="v">τ = 3.36 ms</span> on the scope, and L = R·τ. The same test on the Simulink motor gave 3.37 ms.</p>
     </div>
-    <figure class="ref ref-board" data-sc-in>
-      <div class="ref-img"><img src="assets/board-perfboard.webp" width="1600" height="888" loading="lazy" alt="Generated image of a hand-soldered perfboard with four blue Hall-effect current sensors, resistor dividers, op-amp buffers and green screw terminals with red and black wires."></div>
-      <figcaption class="vlabel">Graphic representation <span>Generated image of the current measurement board and its components. Not a photo of the real board.</span></figcaption>
-      <p class="note">The current board carries the Hall-effect current sensors, resistor voltage dividers and op-amp buffers, soldered by hand on perfboard. To reduce electromagnetic noise I used twisted wiring, minimum loop areas between signal and ground, and a separate ground for each Hall output.</p>
-    </figure>
-  </div>
-</section>
 
-<!-- Detail B: the measurement, dimensions draw in with scroll -->
-<section id="b" class="act sc-section b-act" data-sc-act="flow" data-view="Detail B">
-  <div class="wrap b-grid">
-    <div class="b-text sc-stack" data-sc-in data-sc-stagger="60">
-      <h2 class="h2">Measuring the motor</h2>
-      <p>For R and L the rotor is locked, so there is no back-EMF. A voltage step then gives a first-order current response, and the time constant is the time to reach 63.2 % of the final value. I measured <b>τ = 3.36 ms</b> on the scope, and L = R·τ. The same test on the Simulink motor gave 3.37 ms.</p>
-      <p>With T<sub>i</sub> = L/R the PI zero cancels the motor pole and the closed loop is first order. I chose <b>τ<sub>cl</sub> = 1 ms</b>, ten times the period of the 10 kHz inverter, which gives K<sub>p</sub> = L/τ<sub>cl</sub> = 1.06.</p>
+    <div class="row2">
+      <figure class="scope">
+        <div class="frame"><img src="assets/fig-tau-scope.webp" width="800" height="480" alt="Tektronix capture of the locked-rotor current step with cursors 3.36 ms apart."></div>
+        <figcaption>Oscilloscope capture, 15 Dec 2025: Δt = 3.36 ms from the step to 63.2&nbsp;%.</figcaption>
+      </figure>
+      <figure class="hub">
+        <div class="frame"><img src="assets/fig-kem-scope.jpg" width="640" height="480" loading="lazy" alt="Tektronix capture of the no-load line back-EMF: a sine with cursors at minus 4.8 V and plus 4.8 V, 12 December 2025."></div>
+        <figcaption>Oscilloscope capture, 12 Dec 2025: no-load line back-EMF, 4.8 V amplitude at 24 Hz, for K<sub>em</sub>.</figcaption>
+      </figure>
+    </div>
+
+    <div class="values">
       <table class="tbl vals">
+        <caption style="position:absolute;left:-9999px">Measured motor parameters</caption>
+        <thead><tr><th>Parameter</th><th>Value</th><th>How</th></tr></thead>
         <tbody>
-          <tr><th scope="row">R<sub>s</sub></th><td>0.3157 Ω</td><td>0.483 V / 1.02 A, rotor locked</td></tr>
-          <tr><th scope="row">L<sub>s</sub></th><td>1.0607 mH</td><td>L = R·τ</td></tr>
-          <tr><th scope="row">K<sub>em</sub></th><td>0.0318 V·s/rad</td><td>4.8 V back-EMF at 24 Hz</td></tr>
+          <tr><td>Phase R (R<sub>s</sub>)</td><td class="val">0.316 Ω</td><td class="how">0.483 V / 1.02 A, rotor locked</td></tr>
+          <tr><td>Phase L (L<sub>s</sub>)</td><td class="val">1.06 mH</td><td class="how">L = R·τ</td></tr>
+          <tr><td>Time constant τ</td><td class="val">3.36 ms</td><td class="how">scope, 63.2 % of the step</td></tr>
+          <tr><td>Pole pairs</td><td class="val">15</td><td class="how">Hall cycles per turn</td></tr>
+          <tr><td>K<sub>em</sub></td><td class="val">0.0318 V·s/rad</td><td class="how">4.8 V back-EMF at 24 Hz</td></tr>
+          <tr><td>Damping</td><td class="val">0.014 N·m·s</td><td class="how">fitted to 154 / 194 / 293 rpm at 8 / 10 / 15 V</td></tr>
+          <tr><td>Inertia</td><td class="val">0.02 kg·m²</td><td class="how">wheel, 4 kg, r = 0.1 m; 0.82 with an 80 kg rider</td></tr>
         </tbody>
       </table>
     </div>
-    <figure class="chart-b">
-      <svg id="chartB" class="chart" role="img" aria-label="Current step of the motor alone with the rotor locked reaches 63.2 percent after 3.36 ms; with the current loop it reaches 63.2 percent after 1 ms"></svg>
-      <figcaption class="vlabel">Detail B · Current step, normalised <span>Dimensions in ms. Model with the measured R and L.</span></figcaption>
-    </figure>
-    <div class="b-refs">
-      <figure class="ref">
-        <div class="ref-img scope"><img src="assets/fig-tau-scope.webp" width="800" height="480" loading="lazy" alt="Tektronix capture of the locked-rotor current step with cursors 3.36 ms apart."></div>
-        <figcaption class="vlabel">Scope capture <span>Real measurement, 15 Dec 2025: Δt = 3.36 ms to 63.2 %.</span></figcaption>
-      </figure>
-      <figure class="ref">
-        <div class="ref-img"><img src="assets/winding.webp" width="1600" height="888" loading="lazy" alt="Generated close-up of copper enamel wire wound on a laminated stator tooth."></div>
-        <figcaption class="vlabel">Photo reference <span>Generated macro of a winding. Not my hardware.</span></figcaption>
-      </figure>
+  </div>
+</section>
+
+<!-- 4 · Why 0.5 ms -->
+<section class="sec rate" aria-labelledby="h-rate">
+  <div class="wrap grid">
+    <h2 id="h-rate">Why the control runs every 0.5 ms</h2>
+    <span class="rev">Rev A</span>
+    <div class="rates" aria-hidden="true"><span class="old">10 kHz</span><span class="arrow">→</span><span class="new">2 kHz</span></div>
+    <p class="rates-sub">0.1 ms → 0.5 ms per control step</p>
+    <p class="big">The control first ran at 10 kHz. The speed loop measured time by counting the calls to the control function, and that count fluctuated and dropped as the scooter went faster: the STM32 could not finish the calculations in 0.1 ms. We checked it with the professor and reduced the control rate to 2 kHz (0.5 ms).</p>
+  </div>
+</section>
+
+<!-- 5 · The instrument -->
+<section class="sec" id="limit" aria-labelledby="h-limit">
+  <div class="wrap grid">
+    <h2 id="h-limit">The limit of the 0.5 ms sampling</h2>
+    <aside class="note"><p>T<sub>s</sub> = 0.5 ms<br>T<sub>i</sub> = L/R</p></aside>
+    <div class="body">
+      <p>With T<sub>i</sub> = L/R the PI zero cancels the motor pole and the closed loop is first order. I chose <span class="v">τ<sub>cl</sub> = 1 ms</span>, ten times the period of the 10 kHz inverter, which gives K<sub>p</sub> = L/τ<sub>cl</sub> = 1.06.</p>
+      <p>With that sampling, the current loop overshoots above K<sub>p</sub> ≈ 2 and becomes unstable above K<sub>p</sub> ≈ 3.9. Move the gain.</p>
     </div>
-  </div>
-</section>
 
-<!-- Rev A: quiet before the peak. The empty space below is authored silence. -->
-<section id="rev" class="act sc-section rev-act" data-sc-act="flow" data-view="Rev A">
-  <div class="wrap rev-grid" data-sc-in data-sc-stagger="80">
-    <h2 class="h2">Why the control runs every 0.5 ms</h2>
-    <table class="tbl rev">
-      <thead><tr><th scope="col">Rev</th><th scope="col">Change</th></tr></thead>
-      <tbody><tr><td>A</td><td>The control first ran at 10 kHz. The speed loop measured time by counting the calls to the control function, and that count fluctuated and dropped as the scooter went faster: the STM32 could not finish the calculations in 0.1 ms. We checked it with the professor and reduced the control rate to 2 kHz (0.5 ms).</td></tr></tbody>
-    </table>
-  </div>
-</section>
-
-<!-- C · the peak: the visitor moves the gain, the model answers, the checker marks it -->
-<section id="c" class="act act-peak" data-sc-act="pin" data-sc-span="3" data-view="Detail C" data-rm-flow>
-  <div data-sc-stage>
-    <div class="peak" id="peakStage" data-sc-verify-state="">
-      <div class="peak-text" data-sc-cue="0 1 0 0">
-        <h2 class="h2">The limit of the 0.5 ms sampling</h2>
-        <p>With that sampling, the current loop overshoots above K<sub>p</sub> ≈ 2 and becomes unstable above K<sub>p</sub> ≈ 3.9. Scroll, or move the gain on the scale.</p>
+    <div class="instrument" id="instrument">
+      <div class="i-kp">
+        <label class="lab" for="kp">Proportional gain K<sub>p</sub></label>
+        <output class="kpval" id="kpOut" for="kp">1.06</output>
       </div>
-      <div class="ctrl">
-        <div class="scale">
-          <div class="scale-head"><label for="kp">Proportional gain K<sub>p</sub></label><output id="kpOut" for="kp">1.06</output></div>
-          <div class="scale-body">
-            <svg id="ruler" class="ruler" aria-hidden="true"></svg>
-            <input type="range" id="kp" min="0.5" max="5" step="0.01" value="1.06" aria-valuetext="Kp 1.06, no overshoot">
-          </div>
+      <div class="i-slider">
+        <input type="range" id="kp" min="0.5" max="5" step="0.01" value="1.06" aria-valuetext="Kp 1.06, no overshoot">
+        <div class="zones" aria-hidden="true">
+          <div class="bar"><i class="z1"></i><i class="z2"></i><i class="z3"></i></div>
+          <b class="e0">0.5</b><b class="e1">2</b><b class="e2">3.9</b><b class="e3">5</b>
         </div>
-        <dl class="readouts">
-          <div><dt>Loop</dt><dd id="stateOut">No overshoot</dd></div>
-          <div><dt>Peak current</dt><dd id="peakOut">5.0 A</dd></div>
+      </div>
+      <div class="i-presets">
+        <span class="lab" id="tryLab">Try</span>
+        <div class="presets" role="group" aria-labelledby="tryLab">
+          <button type="button" data-kp="1.06" aria-label="Set Kp to 1.06">1.06</button>
+          <button type="button" data-kp="2" aria-label="Set Kp to 2">2</button>
+          <button type="button" data-kp="3" aria-label="Set Kp to 3">3</button>
+          <button type="button" data-kp="4" aria-label="Set Kp to 4.0">4.0</button>
+          <button type="button" data-kp="4.5" aria-label="Set Kp to 4.5">4.5</button>
+        </div>
+      </div>
+      <div class="i-read" aria-live="polite">
+        <dl class="read">
+          <div><dt class="lab">Loop</dt><dd id="state">No overshoot</dd></div>
+          <div><dt class="lab">Peak current</dt><dd class="peak" id="peak">5.0 A</dd></div>
+          <p class="warnline" id="warn" hidden>Unstable above K<sub>p</sub> ≈ 3.9 with T<sub>s</sub> = 0.5 ms</p>
         </dl>
-        <div class="presets" role="group" aria-label="Test strip: set Kp">
-          <button type="button" data-kp="1.0607"><svg aria-hidden="true"></svg><span>K<sub>p</sub> 1.06</span></button>
-          <button type="button" data-kp="2"><svg aria-hidden="true"></svg><span>K<sub>p</sub> 2</span></button>
-          <button type="button" data-kp="3"><svg aria-hidden="true"></svg><span>K<sub>p</sub> 3</span></button>
-          <button type="button" data-kp="3.9"><svg aria-hidden="true"></svg><span>K<sub>p</sub> 3.9</span></button>
-          <button type="button" data-kp="4.5"><svg aria-hidden="true"></svg><span>K<sub>p</sub> 4.5</span></button>
-        </div>
       </div>
-      <figure class="live">
-        <svg id="live" class="chart" role="img" aria-label="Current step to 5 A with the PI updated every 0.5 ms, for the selected Kp"></svg>
-        <div class="slot" aria-live="polite">
-          <p class="redline" id="redline"><svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 2L22 20H2Z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Unstable above K<sub>p</sub> ≈ 3.9 with T<sub>s</sub> = 0.5 ms</span></p>
-          <p class="revb" id="revb"><b>Rev B</b> On the scooter I kept K<sub>p</sub> = 1.06 and made T<sub>i</sub> twenty times larger (67 ms). The response is slower, but more stable with the noise in the current measurement.</p>
-        </div>
-        <figcaption class="vlabel">Detail C · Current step to 5 A, PI every 0.5 ms <span>Model with the measured R and L. One grid column per control sample.</span></figcaption>
-      </figure>
+      <div class="i-chart chart">
+        <svg id="stepSvg" role="img" aria-label="Current step to 5 A with the selected gain"></svg>
+      </div>
+    </div>
+    <p class="cap5 mono" style="font-size:13px;color:var(--muted);margin-bottom:0">Current step to 5 A, PI every 0.5 ms. Model with the measured R and L. One column per 0.5 ms sample; dots mark the samples.</p>
+
+    <aside class="note revb"><span class="rev">Rev B</span><p>T<sub>i</sub> × 20</p></aside>
+    <div class="body revb">
+      <p>On the scooter I kept K<sub>p</sub> = 1.06 and made T<sub>i</sub> twenty times larger (67 ms). The response is slower, but more stable with the noise in the current measurement.</p>
     </div>
   </div>
 </section>
 
-<!-- D and E: depth for the engineer, compressed for everyone else -->
-<section id="d" class="act sc-section de-act" data-sc-act="flow" data-view="Details D, E">
-  <div class="wrap de-grid">
-    <article class="de" data-sc-in data-sc-stagger="60">
-      <h2 class="h2 sm">Current filter and phase margin</h2>
-      <p>The phase current measured with the Hall sensors still had noise, so I added a first-order low-pass filter on the measurement. The filter adds phase lag inside the loop. Without it the phase margin is 90°. I chose the lowest cut-off that kept an acceptable margin: <b>250 rad/s</b>, with <b>28° at 470 rad/s</b>. In the tests, a lower cut-off made the loop unstable.</p>
-      <figure>
-        <svg id="chartD" class="chart" role="img" aria-label="Open-loop phase of the current loop with and without the 250 rad/s filter; phase margin 28 degrees at 470 rad/s with the filter, 90 degrees without"></svg>
-        <figcaption class="vlabel"><span class="t">Detail D · Open-loop phase, K<sub>p</sub> = 1.06</span> <span>28° at 470 rad/s with the filter. Continuous time, as MATLAB margin() computes it.</span></figcaption>
-      </figure>
-      <figure class="ref ref-sm">
-        <div class="ref-img"><img src="assets/fig-bode-filter-matlab.webp" width="1141" height="767" loading="lazy" alt="MATLAB Bode diagram of the current loop with the filter: gain margin infinite, phase margin 28 degrees at 470 rad/s."></div>
-        <figcaption class="vlabel">MATLAB figure <span>margin(), with the 250 rad/s filter.</span></figcaption>
-      </figure>
-    </article>
-    <article class="de" id="e" data-sc-in data-sc-stagger="60">
-      <h2 class="h2 sm">Speed from the Hall sensors</h2>
-      <p>There is no encoder. The three Hall sensors give 6 edges per electrical cycle, so with 15 pole pairs there are <b>90 edges per turn</b>. At each edge the STM32 calculates ω = (2π/90)/Δt and keeps the value until the next edge. At 200 rpm there is a new value every 3.3 ms; at 20 rpm, only every 33 ms.</p>
+<!-- 6 · Filter -->
+<section class="sec" aria-labelledby="h-filter">
+  <div class="wrap grid">
+    <h2 id="h-filter">Current filter and phase margin</h2>
+    <div class="side-text">
+      <p>The phase current measured with the Hall sensors still had noise, so I added a first-order low-pass filter on the measurement. The filter adds phase lag inside the loop. Without it the phase margin is 90°.</p>
+      <p>I chose the lowest cut-off that kept an acceptable margin: <span class="v">250 rad/s</span>, with <span class="v">28° at 470 rad/s</span>. In the tests, a lower cut-off made the loop unstable.</p>
+    </div>
+    <figure class="side-fig">
+      <div class="frame"><img src="assets/fig-bode-filter-matlab.webp" width="1141" height="767" loading="lazy" alt="MATLAB Bode diagram of the current loop with the filter: gain margin infinite, phase margin 28 degrees at 470 rad/s."></div>
+      <figcaption>MATLAB margin(), current loop with the 250 rad/s filter: 28° at 470 rad/s.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 7 · Hall speed -->
+<section class="sec" aria-labelledby="h-hall">
+  <div class="wrap grid">
+    <h2 id="h-hall">Speed from the Hall sensors</h2>
+    <figure class="side-fig left">
+      <div class="frame chart" id="hallBox"><svg id="hallSvg" role="img" aria-label="Speed estimate from Hall edges under a ramp to 200 rpm: a staircase that updates rarely at low speed and often at high speed."></svg></div>
+      <figcaption>Illustrative ramp. Edges from the model, 90 per turn.</figcaption>
+    </figure>
+    <div class="side-text right wide">
+      <p>There is no encoder. The three Hall sensors give 6 edges per electrical cycle, so with 15 pole pairs there are <span class="v">90 edges per turn</span>. At each edge the STM32 calculates ω = (2π/90)/Δt and keeps the value until the next edge. At 200 rpm there is a new value every 3.3 ms; at 20 rpm, only every 33 ms.</p>
       <p>The speed controller is a PI with acceleration feed-forward and anti-windup (K<sub>p</sub> = 0.0177 A/rpm, T<sub>i</sub> = 2.0 s). Its output is the current reference of the current loop.</p>
-      <figure>
-        <svg id="chartE" class="chart" role="img" aria-label="Speed seen by the controller: a staircase that updates at each Hall edge, under an illustrative speed ramp"></svg>
-        <figcaption class="vlabel">Detail E · Speed seen by the controller <span>Illustrative ramp. Edges from the model, 90 per turn.</span></figcaption>
-      </figure>
-    </article>
-  </div>
-</section>
-
-<!-- Results: from the model to the scooter -->
-<section id="results" class="act sc-section res-act" data-sc-act="flow" data-view="Results">
-  <div class="wrap res-grid">
-    <div class="sc-stack" data-sc-in data-sc-stagger="60">
-      <h2 class="h2">On the scooter</h2>
-      <p class="lede">In the complete Simulink model, the current follows a 5 A step within a few milliseconds and recovers after each commutation. The speed reaches 200 rpm in about 0.6 s.</p>
-      <p class="lede strong">On the scooter, the drive was tested on the floor: it could be driven, accelerated and braked correctly.</p>
-      <p><a class="lnk" href="video/">20-second video summary</a></p>
-    </div>
-    <div class="res-figs">
-      <figure class="ref" data-sc-reveal="left" data-sc-reveal-at="0.12 0.42">
-        <div class="ref-img sim"><img src="assets/fig-current-response.webp" width="1506" height="992" loading="lazy" alt="Simulink: 5 A current step, reference and measured current, with dips at each commutation."></div>
-        <figcaption class="vlabel">Simulink, complete drive <span>5 A current step.</span></figcaption>
-      </figure>
-      <figure class="ref" data-sc-reveal="left" data-sc-reveal-at="0.2 0.5">
-        <div class="ref-img sim"><img src="assets/fig-speed-response.webp" width="1506" height="992" loading="lazy" alt="Simulink: speed reference to 200 rpm and the stepped Hall-based estimate."></div>
-        <figcaption class="vlabel">Simulink, complete drive <span>Speed to 200 rpm.</span></figcaption>
-      </figure>
-      <figure class="ref" data-slot="scooter-video" hidden>
-        <div class="ref-img"><video data-src="media/scooter-drive.mp4" controls playsinline muted preload="none"></video></div>
-        <figcaption class="vlabel">Floor test <span>The scooter during the floor test.</span></figcaption>
-      </figure>
-      <figure class="ref" data-slot="board-photo" hidden>
-        <div class="ref-img"><img data-src="media/boards.jpg" loading="lazy" alt="STM32, IFX007T inverter shield and measurement boards on the bench."></div>
-        <figcaption class="vlabel">Bench <span>Control hardware and measurement boards.</span></figcaption>
-      </figure>
     </div>
   </div>
 </section>
 
-<!-- Title block: the close. Holds, does not fade. -->
-<section id="contact" class="act sc-section tb-act" data-sc-act="flow" data-view="Title block">
-  <div class="wrap">
-    <div class="tb">
-      <div class="tb-title"><span class="k">Title</span><h2>Looking for a Bachelor's thesis in automation or robotics</h2><p>In Västra Götaland, January to June 2027. I'm doing an Erasmus+ double degree between Mondragon Unibertsitatea and the University of Skövde.</p></div>
-      <div class="tb-contact"><span class="k">Contact</span><a href="https://www.linkedin.com/in/perumendivil" rel="me">Contact on LinkedIn <svg viewBox="0 0 26 12" aria-hidden="true"><path d="M0 6H23M18 1l6 5l-6 5" fill="none" stroke="currentColor" stroke-width="2"/></svg></a></div>
-      <div><span class="k">Drawn by</span><span class="v">Peru Mendivil</span></div>
-      <div><span class="k">Period</span><span class="v">January to June 2027</span></div>
-      <div><span class="k">Location</span><span class="v">Västra Götaland</span></div>
-      <div><span class="k">Field</span><span class="v">Automation or robotics</span></div>
-      <div class="last"><span class="k">Project</span><span class="v">Electric scooter, Mondragon, 2025-26</span></div>
-      <div class="last"><span class="k">Source</span><span class="v">Annex E, project report</span></div>
-      <div class="last"><span class="k">Scale</span><span class="v">Not to scale</span></div>
-      <div class="last"><span class="k">Sheet</span><span class="v">1 of 1</span></div>
+<!-- 8 · Results -->
+<section class="sec" id="results" aria-labelledby="h-res">
+  <div class="wrap grid">
+    <h2 id="h-res">On the scooter</h2>
+    <div class="body" style="grid-column:1/8">
+      <p>In the complete Simulink model, the current follows a 5 A step within a few milliseconds and recovers after each commutation. The speed reaches 200 rpm in about 0.6 s.</p>
     </div>
-    <p class="src">Data: annex E of the project report, Mondragon Unibertsitatea, 2025-26. Charts on this page are computed in the browser from the motor model with the measured parameters. Generated images are marked as such.</p>
+    <div class="row2">
+      <figure class="res-a">
+        <div class="frame"><img src="assets/fig-current-response.webp" width="1506" height="992" loading="lazy" alt="Simulink: 5 A current step, reference and measured current, with dips at each commutation."></div>
+        <figcaption>Simulink, complete drive: 5 A current step.</figcaption>
+      </figure>
+      <figure class="res-b">
+        <div class="frame"><img src="assets/fig-speed-response.webp" width="1506" height="992" loading="lazy" alt="Simulink: speed reference to 200 rpm and the stepped Hall-based estimate."></div>
+        <figcaption>Simulink, complete drive: speed to 200 rpm.</figcaption>
+      </figure>
+    </div>
+    <div class="row2">
+      <figure class="res-video">
+        <div class="frame"><div class="pin-wrap">
+          <img src="assets/scooter.jpg" width="678" height="508" loading="lazy" alt="The finished electric scooter standing in a lab: control box on the handlebar, two batteries on a wooden base at the rear of the deck, and the hub motor in the rear wheel.">
+          <span class="pin" style="left:24%;top:28%" aria-hidden="true">1</span>
+          <span class="pin" style="left:67%;top:64%" aria-hidden="true">2</span>
+          <span class="pin" style="left:79%;top:81%" aria-hidden="true">3</span>
+        </div></div>
+        <ol class="legend pins">
+          <li>Measurement boards and STM32, in the box on the handlebar</li>
+          <li>Two 12 V batteries in series, on a wooden base at the rear of the deck</li>
+          <li>Hub motor, in the rear wheel</li>
+        </ol>
+        <figcaption>The finished scooter.</figcaption>
+      </figure>
+      <div class="res-side">
+        <p>On the scooter, the drive was tested on the floor: it could be driven, accelerated and braked correctly.</p>
+      </div>
+    </div>
   </div>
 </section>
 
 </main>
 
+<footer>
+  <div class="wrap grid">
+    <div class="f1">
+      <p>Data: annex E of the project report, Mondragon Unibertsitatea, 2025-26. Charts on this page are computed in the browser from the motor model with the measured parameters. Phase margins are computed in continuous time, as MATLAB margin() does; the sampled response uses the 0.5 ms control period.</p>
+    </div>
+    <div class="f2">
+      <p>Team project at Mondragon Unibertsitatea, five students. Measurement boards and drive control: Peru Mendivil. Battery charger: other team members.</p>
+      <p style="color:var(--ink)">Peru Mendivil, 2026</p>
+    </div>
+  </div>
+</footer>
+
 <script>
-  // Reduced motion: the two pinned acts become ordinary sections with a static composition.
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    document.documentElement.classList.add("rm");
-    document.querySelectorAll("[data-rm-flow]").forEach(function (el) { el.setAttribute("data-sc-act", "flow"); el.removeAttribute("data-sc-span"); });
+// ---- Copied literally from sim.js in this repository (only `export` removed) ----
+const TWO_PI = 2 * Math.PI;
+
+// --- Bench characterisation (annex E.2) ---------------------------------
+const VIN_LOCKED = 0.483;          // V, DC voltage with the rotor locked
+const I_LOCKED = 1.02;             // A, measured current
+const R_LINE = VIN_LOCKED / I_LOCKED;
+const TAU_E = 3.36e-3;             // s, scope: time to 63.2 % of the current step
+const EMF_PERIOD = 15.2e-3 - (-26.4e-3); // s, back-EMF period between scope cursors
+const EMF_AMP = 4.8;               // V, line back-EMF amplitude at that speed
+
+const MOTOR = {
+  polePairs: 15,
+  R: R_LINE,                       // 0.4735 ohm, measured
+  Rs: (2 / 3) * R_LINE,            // 0.3157 ohm, phase value used in the model
+  Ls: (2 / 3) * R_LINE * TAU_E,    // 1.0607 mH
+  tauE: TAU_E,
+  tauSim: 3.37e-3,                 // s, same test on the Simulink motor
+  iStepFinal: 1.04,                // A, final value of the locked-rotor step
+  Kem: EMF_AMP / (TWO_PI / EMF_PERIOD), // V·s/rad (electrical), 0.0318
+  damping: 0.014,                  // N·m·s/rad, fitted against the tachometer
+  wheelMass: 4, wheelRadius: 0.1,  // kg, m (characterization_values.m)
+  riderMass: 80,                   // kg
+  hallEdgesPerRev: 15 * 6,         // 90 sextant changes per mechanical turn
+  tachometer: [                    // supply voltage -> measured speed (annex E.5)
+    { volts: 8, rpm: 154 },
+    { volts: 10, rpm: 194 },
+    { volts: 15, rpm: 293 },
+  ],
+};
+MOTOR.KemPhase = MOTOR.Kem / 2;
+MOTOR.Kt = MOTOR.Kem * MOTOR.polePairs; // N·m/A, as in the acceleration feed-forward (J / (Kem·p))
+MOTOR.Jwheel = 0.5 * MOTOR.wheelMass * MOTOR.wheelRadius ** 2;             // 0.02 kg·m²
+MOTOR.Jrider = MOTOR.Jwheel + MOTOR.riderMass * MOTOR.wheelRadius ** 2;    // 0.82 kg·m²
+
+// --- Current (torque) loop tuning (annex E.3, E.4) -----------------------
+const LOOP = {
+  fInverter: 10e3,                 // Hz
+  Tpwm: 1 / 10e3,                  // s, one PWM period
+  Ts: 5e-4,                        // s, control sample time on the STM32 (sample_control)
+  tauCl: 1e-3,                     // s, 10x the inverter period
+  K: 1 / MOTOR.Rs,                 // plant DC gain, 3.1677
+  Ti: MOTOR.Ls / MOTOR.Rs,         // = tau, pole-zero cancellation
+  KpDesign: 1.0607,                // = Ls / tauCl
+  filterCut: 250,                  // rad/s, low-pass on the measured current
+  TiScooter: 20 * (MOTOR.Ls / MOTOR.Rs), // s, slower integral used on the real scooter
+};
+
+/**
+ * Sampled current loop, as in the Simulink controller: PI with Ti = tau updated every
+ * Ts = 0.5 ms, voltage held between samples (ZOH), exact discretisation of the R-L plant.
+ * Returns samples of the current for a reference step.
+ */
+function digitalCurrentStep(Kp, { tEnd = 6e-3, delaySamples = 0, iRef = 1, Ts = LOOP.Ts, Ti = LOOP.Ti } = {}) {
+  const a = Math.exp(-Ts / MOTOR.tauE);
+  const b = (1 - a) / MOTOR.Rs;
+  const n = Math.round(tEnd / Ts);
+  const queue = new Array(delaySamples).fill(0);
+  let i = 0, integ = 0;
+  const out = [{ t: 0, i: 0 }];
+  for (let k = 0; k < n; k++) {
+    const e = iRef - i;
+    integ += (Ts / Ti) * e;
+    queue.push(Kp * (e + integ));
+    const v = queue.shift();
+    // continuous current inside the sample, for a smooth trace
+    for (let j = 1; j <= 10; j++) {
+      const aj = Math.exp((-Ts * j) / 10 / MOTOR.tauE);
+      out.push({ t: k * Ts + (Ts * j) / 10, i: aj * i + ((1 - aj) / MOTOR.Rs) * v });
+    }
+    i = a * i + b * v;
   }
-  // Phones: less parallax travel, so the plate keeps clear of its label.
-  if (innerWidth < 860) {
-    document.querySelector("#plate").setAttribute("data-sc-parallax", "-0.45");
-    document.querySelector(".cgrid").setAttribute("data-sc-parallax", "-0.2");
+  return out;
+}
+
+// --- Speed measurement from Hall edges (annex E.6) ------------------------
+const rpmToRadS = (rpm) => (rpm * TWO_PI) / 60;
+const radSToRpm = (w) => (w * 60) / TWO_PI;
+
+/**
+ * Speed seen by the controller: updated only at each Hall edge,
+ * w = (2π/90) / Δt, held between edges (the staircase in the Simulink plot).
+ * `speedOf(t)` is the true mechanical speed in rad/s.
+ */
+function hallSpeedEstimate(speedOf, { tEnd, dt = 1e-4 } = {}) {
+  const step = TWO_PI / MOTOR.hallEdgesPerRev;
+  let angle = 0, nextEdge = step, lastEdgeT = 0, estimate = 0;
+  const out = [];
+  for (let t = 0; t <= tEnd + 1e-12; t += dt) {
+    angle += speedOf(t) * dt;
+    while (angle >= nextEdge) {
+      estimate = step / (t - lastEdgeT);
+      lastEdgeT = t;
+      nextEdge += step;
+    }
+    out.push({ t, true: speedOf(t), measured: estimate });
   }
+  return out;
+}
+// ---- end of the copy from sim.js ----
+
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent, text) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  if (parent) parent.appendChild(n);
+  return n;
+}
+const INK = '#171717', MUTED = '#5F5F5F', GRID = '#ECECEA', ACCENT = '#1F3FD1', WARN = '#B42318';
+
+// ---- Hero drawing: 30 magnets (15 pole pairs), 3 Hall sensors 8° apart (120° electrical) ----
+(function motor() {
+  const rad = d => d * Math.PI / 180;
+  const p = (r, d) => [(r * Math.cos(rad(d))).toFixed(2), (r * Math.sin(rad(d))).toFixed(2)].join(' ');
+  const mags = document.getElementById('mags');
+  const r1 = 150, r2 = 168;
+  for (let k = 0; k < 30; k++) {
+    const a0 = -90 + k * 12 + 1, a1 = a0 + 10;
+    const d = `M${p(r2, a0)} A${r2} ${r2} 0 0 1 ${p(r2, a1)} L${p(r1, a1)} A${r1} ${r1} 0 0 0 ${p(r1, a0)} Z`;
+    el('path', { d, class: 'mag', fill: k % 2 ? 'none' : INK, stroke: INK, 'stroke-width': 1, style: `animation-delay:${280 + k * 18}ms` }, mags);
+  }
+  const halls = document.getElementById('halls');
+  for (const a of [-98, -90, -82]) {
+    el('rect', { x: -4, y: -7, width: 8, height: 14, fill: INK, class: 'hall', transform: `rotate(${a + 90}) translate(0 -134)` }, halls);
+  }
+  // numbered callouts, matching items 1-4 of the parts list
+  const marks = document.getElementById('marks');
+  const mk = (n, from, ang) => {
+    const g = el('g', { class: 'mk' }, marks);
+    const [x0, y0] = from, x1 = 214 * Math.cos(rad(ang)), y1 = 214 * Math.sin(rad(ang));
+    el('line', { x1: x0, y1: y0, x2: x1 - 12 * Math.cos(rad(ang)), y2: y1 - 12 * Math.sin(rad(ang)), stroke: MUTED, 'stroke-width': .75 }, g);
+    el('circle', { cx: x0, cy: y0, r: 2.5, fill: INK }, g);
+    el('circle', { cx: x1, cy: y1, r: 12, fill: '#FAFAFA', stroke: INK, 'stroke-width': 1 }, g);
+    el('text', { x: x1, y: y1 + 4.5, 'text-anchor': 'middle', style: 'font:500 13px var(--mono);fill:#171717' }, g, n);
+  };
+  mk('1', [159 * Math.cos(rad(204)), 159 * Math.sin(rad(204))], 204);
+  mk('2', [0, -140], -60);
+  mk('3', [100 * Math.cos(rad(30)), 100 * Math.sin(rad(30))], 30);
+  mk('4', [12 * Math.cos(rad(125)), 12 * Math.sin(rad(125))], 125);
+})();
+
+// ---- The instrument: sampled current step ----
+const T_END = 10e-3, I_TOP = 10, I_BOT = -2.5, I_REF = 5;
+const kpIn = document.getElementById('kp'), kpOut = document.getElementById('kpOut');
+const stateEl = document.getElementById('state'), peakEl = document.getElementById('peak'), warnEl = document.getElementById('warn');
+const stepSvg = document.getElementById('stepSvg');
+const ghost = digitalCurrentStep(1.06, { tEnd: T_END, iRef: I_REF });
+// Stability limit of the sampled loop, from the same model (Jury test). With a = e^(-Ts/tau),
+// b = (1-a)/Rs and c = Ts/Ti, the closed loop is z^2 + (Kp*b*(1+c) - (1+a))*z + (a - Kp*b) = 0,
+// stable while Kp < 2(1+a) / (b(2+c)) = 3.956. The text rounds it to "about 3.9".
+const KP_LIM = (() => {
+  const a = Math.exp(-LOOP.Ts / MOTOR.tauE), b = (1 - a) / MOTOR.Rs, c = LOOP.Ts / LOOP.Ti;
+  return (2 * (1 + a)) / (b * (2 + c));
+})();
+const ICON = {
+  none: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.6 8.2l2.2 2.2 4.6-4.8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+  over: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 12 C4 12 4 3 7 3 S10 9 15 8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+  unst: '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 L15 14 H1 Z" fill="currentColor"/><path d="M8 6v4" stroke="#fff" stroke-width="1.6"/><circle cx="8" cy="12" r=".9" fill="#fff"/></svg>'
+};
+const fmtPeak = p => (p < 100 ? p.toFixed(1) : Math.round(p).toLocaleString('en-US')) + ' A';
+
+function drawStep(kp) {
+  const W = Math.max(280, stepSvg.parentElement.clientWidth - (innerWidth < 861 ? 12 : 40));
+  const H = innerWidth < 861 ? 250 : 380;
+  stepSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  stepSvg.setAttribute('height', H);
+  stepSvg.textContent = '';
+  const m = { l: 44, r: 10, t: 30, b: 30 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const X = t => m.l + (t / T_END) * pw, Y = i => m.t + (1 - (i - I_BOT) / (I_TOP - I_BOT)) * ph;
+  const clip = el('clipPath', { id: 'plotClip' }, el('defs', {}, stepSvg));
+  el('rect', { x: m.l, y: m.t, width: pw, height: ph }, clip);
+  // one column per 0.5 ms sample
+  for (let k = 0; k <= 20; k++) {
+    el('line', { x1: X(k * LOOP.Ts), x2: X(k * LOOP.Ts), y1: m.t, y2: m.t + ph, stroke: k % 4 === 0 ? '#DCDCD9' : GRID, 'stroke-width': 1 }, stepSvg);
+  }
+  const xt = innerWidth < 861 ? [0, 5, 10] : [0, 2, 4, 6, 8, 10];
+  xt.forEach(v => el('text', { class: 'ax', x: X(v / 1000), y: H - 8, 'text-anchor': v === 0 ? 'start' : v === 10 ? 'end' : 'middle' }, stepSvg, v === 10 ? '10 ms' : String(v)));
+  [-2.5, 0, 2.5, 5, 7.5, 10].forEach(v => {
+    el('line', { x1: m.l, x2: m.l + pw, y1: Y(v), y2: Y(v), stroke: v === 0 ? '#BDBDBA' : GRID }, stepSvg);
+    el('text', { class: 'ax', x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end' }, stepSvg, v === 10 ? '10 A' : String(v));
+  });
+  // 5 A reference
+  el('line', { x1: m.l, x2: m.l + pw, y1: Y(I_REF), y2: Y(I_REF), stroke: INK, 'stroke-width': 1, 'stroke-dasharray': '4 4' }, stepSvg);
+  const path = pts => pts.map((p, j) => (j ? 'L' : 'M') + X(p.t).toFixed(1) + ' ' + Y(p.i).toFixed(1)).join('');
+  const g = el('g', { 'clip-path': 'url(#plotClip)' }, stepSvg);
+  const out = digitalCurrentStep(kp, { tEnd: T_END, iRef: I_REF });
+  const peak = Math.max(...out.map(p => p.i));
+  // Overshoot counts from 1 % above the reference, so Kp = 2 (5.03 A, 0.6 %) reads as the text says.
+  const st = kp >= KP_LIM ? 'unst' : peak > I_REF * 1.01 ? 'over' : 'none';
+  const col = st === 'unst' ? WARN : ACCENT;
+  if (Math.abs(kp - 1.06) > 0.004) el('path', { d: path(ghost), fill: 'none', stroke: '#B5B5B2', 'stroke-width': 1.5 }, g);
+  el('path', { d: path(out), fill: 'none', stroke: col, 'stroke-width': 2.25, 'stroke-linejoin': 'round' }, g);
+  for (let k = 0; k <= 20; k++) {
+    const p = out[k * 10];
+    if (p && p.i >= I_BOT - 0.2 && p.i <= I_TOP + 0.2) el('circle', { cx: X(p.t), cy: Y(p.i), r: 3, fill: '#fff', stroke: col, 'stroke-width': 1.5 }, g);
+  }
+  // labels
+  el('text', { class: 'ax halo', x: m.l + pw - 4, y: Y(I_REF) + 18, 'text-anchor': 'end' }, stepSvg, '5 A reference');
+  if (Math.abs(kp - 1.06) > 0.004) el('text', { class: 'ax halo', x: m.l + 6, y: Y(1.2), 'text-anchor': 'start' }, stepSvg, 'grey: Kp 1.06');
+  const exit = out.find(p => p.i > I_TOP || p.i < I_BOT);
+  if (exit) el('text', { class: 'ax halo', x: m.l + pw, y: 14, 'text-anchor': 'end', style: `fill:${WARN}` }, stepSvg, `${exit.i > I_TOP ? '↑' : '↓'} leaves the scale at ${(exit.t * 1000).toFixed(1)} ms`);
+
+  const label = st === 'unst' ? 'Unstable' : st === 'over' ? 'Overshoot' : 'No overshoot';
+  stateEl.innerHTML = ICON[st] + '<span>' + label + '</span>';
+  stateEl.className = st === 'unst' ? 'st-unstable' : '';
+  peakEl.textContent = fmtPeak(peak);
+  warnEl.hidden = st !== 'unst';
+  kpOut.textContent = kp.toFixed(2);
+  kpIn.setAttribute('aria-valuetext', `Kp ${kp.toFixed(2)}, ${label.toLowerCase()}, peak current ${fmtPeak(peak)}`);
+  document.querySelectorAll('.presets button').forEach(b => b.setAttribute('aria-pressed', String(Math.abs(+b.dataset.kp - kp) < 0.005)));
+}
+kpIn.addEventListener('input', () => drawStep(+kpIn.value));
+document.querySelectorAll('.presets button').forEach(b => b.addEventListener('click', () => { kpIn.value = b.dataset.kp; drawStep(+b.dataset.kp); }));
+
+// ---- Hall speed staircase ----
+const hallSvg = document.getElementById('hallSvg');
+const RAMP_T = 0.6, RPM_TOP = 200;
+const hall = hallSpeedEstimate(t => rpmToRadS(RPM_TOP * Math.min(t / RAMP_T, 1)), { tEnd: RAMP_T });
+function drawHall() {
+  const W = Math.max(260, hallSvg.parentElement.clientWidth - 34);
+  const H = innerWidth < 861 ? 240 : 320;
+  hallSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  hallSvg.setAttribute('height', H);
+  hallSvg.textContent = '';
+  const m = { l: 40, r: 8, t: 28, b: 30 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const X = t => m.l + (t / RAMP_T) * pw, Y = r => m.t + (1 - r / RPM_TOP) * ph;
+  el('text', { class: 'ax', x: m.l - 8, y: 12, 'text-anchor': 'end' }, hallSvg, 'rpm');
+  [0, 50, 100, 150, 200].forEach(v => {
+    el('line', { x1: m.l, x2: m.l + pw, y1: Y(v), y2: Y(v), stroke: v ? GRID : '#BDBDBA' }, hallSvg);
+    el('text', { class: 'ax', x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end' }, hallSvg, String(v));
+  });
+  [0, 0.2, 0.4, 0.6].forEach(v => el('text', { class: 'ax', x: X(v), y: H - 8, 'text-anchor': v === 0 ? 'start' : v === 0.6 ? 'end' : 'middle' }, hallSvg, v === 0.6 ? '0.6 s' : String(v)));
+  el('line', { x1: X(0), y1: Y(0), x2: X(RAMP_T), y2: Y(RPM_TOP), stroke: '#A9A9A6', 'stroke-width': 1.25, 'stroke-dasharray': '3 4' }, hallSvg);
+  let d = `M${X(0).toFixed(1)} ${Y(0).toFixed(1)}`, prev = 0;
+  for (const p of hall) {
+    const r = radSToRpm(p.measured);
+    if (r !== prev) { d += `H${X(p.t).toFixed(1)}V${Y(r).toFixed(1)}`; prev = r; }
+  }
+  d += `H${X(RAMP_T).toFixed(1)}`;
+  el('path', { d, fill: 'none', stroke: ACCENT, 'stroke-width': 1.75, 'stroke-linejoin': 'miter' }, hallSvg);
+  const narrow = W < 480;
+  el('circle', { cx: X(0.06), cy: Y(20), r: 3, fill: INK }, hallSvg);
+  el('line', { x1: X(0.06), y1: Y(20), x2: X(0.13) - 4, y2: Y(9) - 4, stroke: MUTED, 'stroke-width': .75 }, hallSvg);
+  el('text', { class: 'ax', x: X(0.13), y: Y(9), 'text-anchor': 'start', style: 'fill:#171717' }, hallSvg, narrow ? '20 rpm: every 33 ms' : '20 rpm: a new value every 33 ms');
+  el('circle', { cx: X(RAMP_T), cy: Y(RPM_TOP), r: 3, fill: INK }, hallSvg);
+  el('line', { x1: X(RAMP_T), y1: Y(RPM_TOP), x2: X(RAMP_T), y2: Y(narrow ? 48 : 78), stroke: MUTED, 'stroke-width': .75 }, hallSvg);
+  el('text', { class: 'ax', x: X(RAMP_T) - 6, y: Y(narrow ? 40 : 70), 'text-anchor': 'end', style: 'fill:#171717' }, hallSvg, narrow ? '200 rpm: every 3.3 ms' : '200 rpm: a new value every 3.3 ms');
+  el('text', { class: 'ax', x: m.l + 8, y: m.t + 14 }, hallSvg, narrow ? 'dashed: ramp · blue: estimate' : 'dashed: ramp · blue: estimate at each edge');
+}
+
+drawStep(1.06);
+drawHall();
+let rz;
+addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { drawStep(+kpIn.value); drawHall(); }, 120); });
 </script>
-<script src="scrollcraft.js"></script>
-<script>ScrollCraft.mount(document.body);</script>
-<script type="module" src="app.js"></script>
 </body>
 </html>
